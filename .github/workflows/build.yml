@@ -56,6 +56,17 @@ jobs:
           LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
           if [ -n "$LATEST" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
           xcodebuild -version
+      - name: Create & boot simulator (overlaps build)
+        run: |
+          set -euo pipefail
+          RUNTIME=$(xcrun simctl list runtimes | grep -oE "com.apple.CoreSimulator.SimRuntime.iOS-2[6-9][0-9-]*" | tail -1)
+          echo "runtime: $RUNTIME"
+          if [ -z "$RUNTIME" ]; then echo "NO iOS 26 RUNTIME"; exit 1; fi
+          DEVTYPE=$(xcrun simctl list devicetypes | grep -oE "com.apple.CoreSimulator.SimDeviceType.iPhone-1[0-9]" | tail -1)
+          DEV=$(xcrun simctl create "MaiBotTest" "$DEVTYPE" "$RUNTIME")
+          echo "DEV=$DEV" >> "$GITHUB_ENV"
+          echo "booting $DEV while building..."
+          xcrun simctl boot "$DEV" || true
       - name: Install XcodeGen
         run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
       - name: Generate project
@@ -73,14 +84,6 @@ jobs:
           GM_COOKIE: ${{ secrets.GM_TEST_COOKIE }}
         run: |
           set -euo pipefail
-          RUNTIME=$(xcrun simctl list runtimes | grep -oE "com\.apple\.CoreSimulator\.SimRuntime\.iOS-2[6-9][0-9-]*" | tail -1)
-          echo "runtime: $RUNTIME"
-          xcrun simctl list runtimes | head -20
-          if [ -z "$RUNTIME" ]; then echo "NO iOS 26 RUNTIME"; exit 1; fi
-          DEVTYPE=$(xcrun simctl list devicetypes | grep -oE "com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-1[0-9]" | tail -1)
-          DEV=$(xcrun simctl create "MaiBotTest" "$DEVTYPE" "$RUNTIME")
-          echo "device: $DEV"
-          xcrun simctl boot "$DEV" || true
           xcrun simctl bootstatus "$DEV" -b || true
           APP="build/sim/Build/Products/Debug-iphonesimulator/MaiBot.app"
           test -d "$APP" || { echo "app missing"; ls -R build/sim/Build/Products || true; exit 1; }
