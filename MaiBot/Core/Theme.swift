@@ -171,3 +171,30 @@ struct SegmentedChips<Item: Hashable>: View {
         }
     }
 }
+// MARK: - Panel frames (web PageFrame / DataPanel look)
+
+struct PageFrame<Content: View>: View {
+    @Environment(\.palette) private var p
+    var padding: CGFloat = 14
+    @ViewBuilder var content: Content
+    var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(p.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(p.separator, lineWidth: 2) }
+    }
+}
+
+struct DataPanel<Content: View>: View {
+    @Environment(\.palette) private var p
+    var padding: CGFloat = 12
+    @ViewBuilder var content: Content
+    var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(p.bg, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(p.separator, lineWidth: 1) }
+    }
+}

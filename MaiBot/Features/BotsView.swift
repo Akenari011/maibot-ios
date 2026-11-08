@@ -102,7 +102,7 @@ struct BotsView: View {
     }
 
     private var statsCard: some View {
-        Panel {
+        PageFrame {
             VStack(alignment: .leading, spacing: 14) {
                 Text("机器人数量统计").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                 HStack(spacing: 0) {
@@ -142,7 +142,7 @@ struct BotsView: View {
     }
 
     private var newBotCard: some View {
-        Panel {
+        PageFrame {
             VStack(alignment: .leading, spacing: 12) {
                 Text("新建 Bot").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                 Text("创建独立配置和数据目录；创建后不会自动启动或登录。")
@@ -186,7 +186,7 @@ struct BotsView: View {
     }
 
     private func row(_ bot: Bot) -> some View {
-        Panel(padding: 16) {
+        PageFrame(padding: 14) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
                     Circle().fill(bot.isRunning ? p.green : p.textTertiary).frame(width: 8, height: 8)
@@ -216,15 +216,15 @@ struct BotsView: View {
                     }
                 }
 
-                HStack(spacing: 0) {
-                    infoCol("进程 ID", bot.pid.map(String.init) ?? "—")
-                    rectDivider(30)
-                    infoCol("退出码", bot.exitCode.map(String.init) ?? "—")
-                    rectDivider(30)
-                    infoCol("GATEWAY", "/maim/" + String(bot.botID.prefix(8)) + "…", tint: p.orange)
+                DataPanel(padding: 12) {
+                    HStack(spacing: 0) {
+                        infoCol("进程 ID", bot.pid.map(String.init) ?? "—")
+                        rectDivider(30)
+                        infoCol("退出码", bot.exitCode.map(String.init) ?? "—")
+                        rectDivider(30)
+                        infoCol("GATEWAY", "/maim/" + String(bot.botID.prefix(8)) + "…", tint: p.orange)
+                    }
                 }
-                .padding(.vertical, 10)
-                .background(p.iconCircle.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
 
                 HStack(spacing: 8) {
                     actionBtn("启动", "play", p.text) { await act(bot, .start) }
