@@ -1,0 +1,81 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build on iOS Simulator
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show available Xcode versions
+        run: |
+          echo "--- /Applications ---"
+          ls -1 /Applications | grep -i xcode || true
+          echo "--- xcodebuild -version ---"
+          xcodebuild -version
+          echo "--- SDKs ---"
+          xcodebuild -showsdks | sed -n '1,40p'
+
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "${LATEST:-}" ]; then
+            echo "Selecting $LATEST"
+            sudo xcode-select -switch "$LATEST/Contents/Developer"
+          fi
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project MaiBot.xcodeproj \
+            -scheme MaiBot \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build | tee build.log \
+            | xcpretty 2>/dev/null || true
+          echo "---- tail ----"
+          tail -n 40 build.log
+
+      - name: Fail if build log contains errors
+        run: |
+          if grep -E "error: " build.log | grep -v "0 errors" > /dev/null; then
+            echo "Build produced errors:"
+            grep -E "error: " build.log
+            exit 1
+          fi
+          echo "No compiler errors."
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
