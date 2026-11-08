@@ -21,9 +21,7 @@ jobs:
         run: |
           echo "--- /Applications ---"
           ls -1 /Applications | grep -i xcode || true
-          echo "--- xcodebuild -version ---"
           xcodebuild -version
-          echo "--- SDKs ---"
           xcodebuild -showsdks | sed -n '1,40p'
 
       - name: Select newest Xcode
@@ -38,14 +36,13 @@ jobs:
 
       - name: Install XcodeGen
         run: |
-          if ! command -v xcodegen >/dev/null 2>&1; then
-            brew install xcodegen
-          fi
+          command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen --version
 
       - name: Generate Xcode project
         run: xcodegen generate
 
+      # pipefail + tee means the step fails exactly when xcodebuild does.
       - name: Build
         run: |
           set -o pipefail
@@ -58,19 +55,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build | tee build.log \
-            | xcpretty 2>/dev/null || true
-          echo "---- tail ----"
-          tail -n 40 build.log
-
-      - name: Fail if build log contains errors
-        run: |
-          if grep -E "error: " build.log | grep -v "0 errors" > /dev/null; then
-            echo "Build produced errors:"
-            grep -E "error: " build.log
-            exit 1
-          fi
-          echo "No compiler errors."
+            build 2>&1 | tee build.log
 
       - name: Upload build log
         if: always()

@@ -84,7 +84,11 @@ final class AuthStore {
         try? await client.logout()
         client.sessionCookie = nil
         Keychain.delete(service: service, account: keychainAccount)
-        await WKWebsiteDataStore.default().httpCookieStore.clearAllCookies()
+        // WKHTTPCookieStore has no bulk clear; delete them one by one.
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        for cookie in await store.allCookies() {
+            await store.delete(cookie)
+        }
         state = .loggedOut
     }
 }
