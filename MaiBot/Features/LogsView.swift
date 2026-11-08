@@ -66,6 +66,7 @@ struct LogsView: View {
     @State private var filterOpen = false
     @State private var sourcesOpen = false
     @State private var exportURL: URL?
+    @State private var hiddenModules: Set<String> = []
 
     @AppStorage("log.level") private var levelFilterRaw = "INFO"
     @AppStorage("log.font") private var fontRaw = "xs"
@@ -117,6 +118,7 @@ struct LogsView: View {
         let q = search.lowercased()
         let minRank = levelFilter == .all ? Int.min : LogLevels.rank(levelFilter.rawValue)
         return allEntries.filter { e in
+            if hiddenModules.contains(e.module) { return false }
             if minRank != Int.min, LogLevels.rank(e.level) < minRank { return false }
             if !q.isEmpty {
                 let hit = e.message.lowercased().contains(q)
@@ -277,21 +279,39 @@ struct LogsView: View {
 
     private var sourcesPanel: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("来源（\(modules.count)）").font(.system(size: 13, weight: .semibold))
+            HStack {
+                Text("来源（\(modules.count - hiddenModules.count)/\(modules.count)）").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Button("全选") { hiddenModules.removeAll() }.font(.system(size: 11)).foregroundStyle(p.orange)
+                Button("全不选") { hiddenModules = Set(modules.map { $0.id }) }.font(.system(size: 11)).foregroundStyle(p.orange)
+            }
             if modules.isEmpty {
                 Text("暂无来源").font(.system(size: 12)).foregroundStyle(.secondary)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 2) {
                         ForEach(modules) { m in
-                            Text(m.name).font(.system(size: 12, design: .monospaced)).lineLimit(1)
+                            Button { toggle(m.id) } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: hiddenModules.contains(m.id) ? "square" : "checkmark.square.fill")
+                                        .font(.system(size: 12)).foregroundStyle(hiddenModules.contains(m.id) ? p.textTertiary : p.orange)
+                                    Text(m.name).font(.system(size: 12, design: .monospaced)).foregroundStyle(p.text).lineLimit(1)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 3)
+                                .contentShape(.rect)
+                            }.buttonStyle(.plain)
                         }
                     }
                 }
             }
         }
         .padding(14)
-        .frame(width: 260, alignment: .leading)
+        .frame(width: 280, alignment: .leading)
+    }
+
+    private func toggle(_ id: String) {
+        if hiddenModules.contains(id) { hiddenModules.remove(id) } else { hiddenModules.insert(id) }
     }
 
     private var filterSheet: some View {
