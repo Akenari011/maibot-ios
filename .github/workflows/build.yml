@@ -45,7 +45,7 @@ jobs:
         with: { name: build-sim-log, path: build-sim.log, retention-days: 7 }
       - name: Upload simulator app
         uses: actions/upload-artifact@v4
-        with: { name: sim-app, path: build/sim/Build/Products/Debug-iphonesimulator/MaiBot.app, retention-days: 1 }
+        with: { name: sim-app, path: build/sim/Build/Products/Debug-iphonesimulator, retention-days: 1 }
 
   screenshot:
     name: Screenshot on Simulator
@@ -61,7 +61,7 @@ jobs:
           xcodebuild -version
       - name: Download simulator app
         uses: actions/download-artifact@v4
-        with: { name: sim-app, path: build/sim/Build/Products/Debug-iphonesimulator }
+        with: { name: sim-app, path: build/sim/Build/Products }
       - name: Boot, install, screenshot
         env:
           GM_COOKIE: ${{ secrets.GM_TEST_COOKIE }}
@@ -85,7 +85,7 @@ jobs:
             echo "=== $TAB ==="
             SLEEP=8
             case "$TAB" in
-              chat) SLEEP=40 ;;
+              chat) SLEEP=12 ;;
               logs) SLEEP=10 ;;
               room) SLEEP=10 ;;
             esac
