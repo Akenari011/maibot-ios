@@ -162,7 +162,9 @@ struct DashboardView: View {
             HStack {
                 Text("快捷操作").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                 Spacer()
-                Text("自定义").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                NavigationLink(value: HomeRoute.settings) {
+                    Text("自定义").font(.system(size: 13)).foregroundStyle(p.orange)
+                }.buttonStyle(.plain)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
                 NavigationLink(value: HomeRoute.logs) { GridTile(icon: "doc.text", label: "查看日志") }
