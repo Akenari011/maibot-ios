@@ -187,6 +187,18 @@ final class APIClient {
         return r.items
     }
 
+    func configBot(botID: String) async throws -> Any {
+        let req = try makeRequest(proxy(botID, "config/bot"))
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        capturePanel(http)
+        if http.statusCode == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func chatStreams(botID: String) async throws -> [ChatStream] {
         let r: ChatStreamList = try await get("/api/host/bots/\(botID)/proxy/api/chat/sessions?limit=1000")
         return r.sessions

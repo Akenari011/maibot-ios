@@ -27,7 +27,7 @@ struct RootView: View {
 
 enum AppTab: Hashable { case home, chat, manage }
 enum HomeRoute: Hashable { case activity, models, settings, logs }
-enum ManageRoute: Hashable { case bots, models, statistics, settings, logs, other(String) }
+enum ManageRoute: Hashable { case bots, models, statistics, config, settings, logs, other(String) }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
@@ -81,6 +81,7 @@ struct MainShell: View {
                                 case .bots:      BotsView()
                                 case .models:    ModelListView()
                                 case .statistics: StatisticsView()
+                                case .config:    ConfigBrowserView()
                                 case .settings:  SettingsView()
                                 case .logs:      LogsView()
                                 case .other(let title): PlaceholderPage(title: title)

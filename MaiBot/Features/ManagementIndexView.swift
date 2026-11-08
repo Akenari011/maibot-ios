@@ -29,7 +29,7 @@ struct ManagementIndexView: View {
     private var groups: [ManagementGroup] {
         [
             ManagementGroup(title: "配置管理", items: [
-                ManagementItem(icon: "slider.horizontal.3", title: "麦麦设置", route: .other("麦麦设置")),
+                ManagementItem(icon: "slider.horizontal.3", title: "麦麦设置", route: .config),
                 ManagementItem(icon: "cube", title: "模型管理", route: .models),
                 ManagementItem(icon: "wifi.router", title: "适配器设置", route: .other("适配器设置")),
                 ManagementItem(icon: "cpu", title: "机器人管理", route: .bots),
