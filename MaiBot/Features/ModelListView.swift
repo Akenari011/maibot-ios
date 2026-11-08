@@ -34,6 +34,12 @@ struct ModelListView: View {
 
                 if let error { ErrorBanner(message: error) { Task { await load() } } }
 
+                if filtered.isEmpty {
+                    Text(query.isEmpty ? "暂无模型" : "没有匹配的模型")
+                        .font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                        .frame(maxWidth: .infinity).padding(.top, 40)
+                }
+
                 ForEach(filtered) { m in
                     Panel(padding: 14) {
                         HStack(spacing: 12) {
