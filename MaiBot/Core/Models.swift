@@ -54,6 +54,8 @@ struct Bot: Codable, Identifiable, Hashable {
         case "stopped":    return "已停止"
         case "starting":   return "启动中"
         case "restarting": return "重启中"
+        case "migrating":  return "迁移中"
+        case "crash_loop": return "崩溃循环"
         case "failed":     return "失败"
         case "crashed":    return "已崩溃"
         case "exited":     return "已退出"

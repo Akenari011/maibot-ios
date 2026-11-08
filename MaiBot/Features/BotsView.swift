@@ -232,9 +232,30 @@ struct BotsView: View {
                     actionBtn("重启", "arrow.clockwise", p.text) { await act(bot, .restart) }
                     Spacer()
                 }
+
+                DisclosureGroup("详情") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        kv("目录", bot.directory ?? "—")
+                        kv("log_path", bot.logPath ?? "—")
+                        kv("bot_id", bot.botID)
+                        kv("started_at", bot.startedAt ?? "—")
+                        if let err = bot.error, !err.isEmpty { kv("error", err) }
+                    }
+                    .padding(.top, 6)
+                }
+                .font(.system(size: 13))
+                .tint(p.textSecondary)
             }
         }
         .opacity(busyID == bot.botID ? 0.6 : 1)
+    }
+
+    private func kv(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(label).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary).frame(width: 72, alignment: .leading)
+            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.text).lineLimit(2)
+            Spacer(minLength: 0)
+        }
     }
 
     private func infoCol(_ label: String, _ value: String, tint: Color? = nil) -> some View {

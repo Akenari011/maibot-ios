@@ -185,7 +185,7 @@ struct ChatView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("聊天").font(.system(size: 30, weight: .black)).foregroundStyle(p.text)
+            Text("聊天").font(.system(size: 20, weight: .bold)).foregroundStyle(p.text)
             if let chat {
                 switch chat.status {
                 case .ready:
@@ -270,14 +270,10 @@ struct ChatView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(m.role == .user ? .white : p.text)
                     .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(m.role == .user ? p.orange : p.card,
-                                in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay {
-                        if m.role == .bot {
-                            RoundedRectangle(cornerRadius: 16).strokeBorder(p.separator)
-                        }
-                    }
+                    .background(m.role == .user ? p.orange : p.iconCircle,
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .textSelection(.enabled)
+                    .frame(maxWidth: 290, alignment: m.role == .user ? .trailing : .leading)
                 if m.role == .bot { Spacer(minLength: 48) }
             }
         }
