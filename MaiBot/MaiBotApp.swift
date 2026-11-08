@@ -12,12 +12,9 @@ struct MaiBotApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            ThemedRoot()
                 .environment(client)
                 .environment(auth)
-                .environment(\.palette, .panel)
-                .tint(Palette.panel.orange)
-                .preferredColorScheme(.light)
                 .task { await auth.restore(client: client) }
         }
     }

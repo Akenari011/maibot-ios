@@ -209,3 +209,33 @@ struct PressableStyle: ButtonStyle {
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
+
+// MARK: - Dark palette & theme root
+
+extension Palette {
+    static let dark = Palette(
+        bg: Color(hex: 0x020817),
+        card: Color(hex: 0x12191A),
+        text: Color(hex: 0xF8FAFC),
+        textSecondary: Color(hex: 0x94B3B8),
+        textTertiary: Color(hex: 0x6B7F84),
+        separator: Color(hex: 0x243336),
+        green: Color(hex: 0x34C759),
+        orange: Color(hex: 0xE06F06),
+        iconCircle: Color(hex: 0x273032),
+        progressTrack: Color(hex: 0x273032),
+        progressFill: Color(hex: 0xE06F06)
+    )
+}
+
+struct ThemedRoot: View {
+    @AppStorage("theme.mode") private var mode = "system"
+    @Environment(\.colorScheme) private var systemScheme
+    private var isDark: Bool { mode == "dark" || (mode == "system" && systemScheme == .dark) }
+    var body: some View {
+        RootView()
+            .environment(\.palette, isDark ? .dark : .panel)
+            .tint(isDark ? Palette.dark.orange : Palette.panel.orange)
+            .preferredColorScheme(mode == "system" ? nil : (mode == "dark" ? .dark : .light))
+    }
+}

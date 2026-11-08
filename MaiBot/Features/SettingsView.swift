@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var busy = false
     @State private var notice: String?
     @State private var confirmReset = false
+    @AppStorage("theme.mode") private var themeMode = "system"
 
     var body: some View {
         ScrollView {
@@ -129,11 +130,11 @@ struct SettingsView: View {
         card {
             VStack(alignment: .leading, spacing: 12) {
                 Text("主题").font(.system(size: 13, weight: .semibold)).foregroundStyle(p.textSecondary)
-                HStack(spacing: 10) {
-                    themeChip("浅色", on: true)
-                    themeChip("深色", on: false)
-                    themeChip("跟随系统", on: false)
-                }
+                Picker("主题", selection: $themeMode) {
+                    Text("跟随系统").tag("system")
+                    Text("浅色").tag("light")
+                    Text("深色").tag("dark")
+                }.pickerStyle(.segmented)
                 Text("强调色").font(.system(size: 13, weight: .semibold)).foregroundStyle(p.textSecondary).padding(.top, 4)
                 HStack(spacing: 10) {
                     ForEach([0xE06F06, 0x2EB37C, 0xEB8A2E, 0xA24FD9, 0xE04F8A], id: \.self) { hex in
