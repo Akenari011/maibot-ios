@@ -81,7 +81,7 @@ struct SettingsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(SettingsTab.allCases, id: \.self) { t in
-                    Button { withAnimation(Motion.fast) { tab = t } } label: {
+                    Button { withAnimation(.easeOut(duration: Motion.fast)) { tab = t } } label: {
                         Text(t.rawValue)
                             .font(.system(size: 13, weight: tab == t ? .semibold : .regular))
                             .foregroundStyle(tab == t ? .white : p.text)

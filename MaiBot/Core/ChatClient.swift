@@ -2,21 +2,15 @@
 //  ChatClient.swift
 //  MaiBot
 //
-//  Native chat over the panel websocket (/api/webui/ws).
+//  Native chat over the bot unified websocket. Like LogsClient, it probes the
+//  bot proxy path first (needs panel session, present on device after WebView
+//  login) then the plain path, keeping whichever acknowledges session.open.
 //
-//  Protocol, verified against the panel's unified.py / service.py:
 //    -> {"op":"call","id","domain":"chat","method":"session.open"|"message.send","session":<id>,"data":{...}}
-//    <- {"op":"response","id","ok",...}
+//    <- {"op":"response",...}
 //    <- {"op":"event","domain":"chat","event":<type>,"data":{...}}
-//
-//  Chat event types:
-//    session_info       -- metadata only, ignored
-//    history            -- data.messages: [{type:"bot"|"user", content, segments?}]
-//    system             -- data.content: welcome / info line
-//    user_message       -- someone's message; ours echoes back too (data.origin)
-//    typing             -- data.is_typing
-//    bot_message        -- THE bot reply; data.content (+ data.segments for rich)
-//    error              -- data.content
+//  Chat event types: session_info / history / system / user_message / typing /
+//  bot_message (the bot reply) / error.
 //
 
 import Foundation
@@ -32,85 +26,115 @@ struct ChatMessage: Identifiable, Equatable {
 @MainActor
 @Observable
 final class ChatClient {
-    enum Status: Equatable {
-        case idle, connecting, ready
-        case failed(String)
-    }
+    enum Status: Equatable { case idle, connecting, ready; case failed(String) }
 
     var status: Status = .idle
     var messages: [ChatMessage] = []
     var waiting = false
+    private(set) var debug = ""
 
     private var task: URLSessionWebSocketTask?
     private let sessionID = UUID().uuidString
     private var rpc = 0
     private let client: APIClient
     private var ping: Task<Void, Never>?
+    private var listenTask: Task<Void, Never>?
+    private var botID: String?
 
     init(client: APIClient) { self.client = client }
 
-    private func wsURL() -> URL? {
+    private func url(for path: String) -> URL? {
         guard var comp = URLComponents(url: client.baseURL, resolvingAgainstBaseURL: false) else { return nil }
         comp.scheme = (client.baseURL.scheme == "https") ? "wss" : "ws"
-        comp.path = "/api/webui/ws"
+        comp.path = path
         comp.query = nil
         return comp.url
+    }
+
+    private func candidatePaths() -> [String] {
+        var paths: [String] = []
+        if let id = botID, !id.isEmpty { paths.append("/api/host/bots/\(id)/proxy/api/webui/ws") }
+        paths.append("/api/webui/ws")
+        return paths
     }
 
     func connect() async {
         if case .ready = status { return }
         if case .connecting = status { return }
         status = .connecting
-        // A plain API call mints the panel cookie we need for the handshake.
-        _ = try? await client.hostMode()
-        guard let url = wsURL() else { status = .failed("无效地址"); return }
+        let mode = try? await client.hostMode()
+        botID = mode?.selectedBotID
 
-        var req = URLRequest(url: url)
-        var cookies: [String] = []
-        if let s = client.sessionCookie, !s.isEmpty { cookies.append(s) }
-        if let pc = client.panelCookie, !pc.isEmpty { cookies.append(pc) }
-        if !cookies.isEmpty { req.setValue(cookies.joined(separator: "; "), forHTTPHeaderField: "Cookie") }
+        for path in candidatePaths() {
+            guard let u = url(for: path) else { continue }
+            var req = URLRequest(url: u)
+            var cookies: [String] = []
+            if let s = client.sessionCookie, !s.isEmpty { cookies.append(s) }
+            if let pc = client.panelCookie, !pc.isEmpty { cookies.append(pc) }
+            if !cookies.isEmpty { req.setValue(cookies.joined(separator: "; "), forHTTPHeaderField: "Cookie") }
 
-        let t = URLSession.shared.webSocketTask(with: req)
-        task = t
-        t.resume()
-        status = .ready
-        sendRaw(["op": "call", "id": nextID(), "domain": "chat", "method": "session.open",
-                 "session": sessionID, "data": ["user_name": "我"]])
-        listen()
-        startPing()
+            let t = URLSession.shared.webSocketTask(with: req)
+            t.resume()
+            sendRaw(t, ["op": "call", "id": nextID(), "domain": "chat", "method": "session.open",
+                        "session": sessionID, "data": ["user_name": "我"]])
+
+            if let first = await firstMessage(t, timeout: 3.0) {
+                task = t
+                status = .ready
+                debug = (path.contains("/proxy/") ? "代理" : "顶层")
+                handle(first)
+                startListen(t)
+                startPing(t)
+                return
+            }
+            t.cancel(with: .goingAway, reason: nil)
+        }
+        status = .failed("无法连接聊天（缺少面板会话）")
+    }
+
+    private func firstMessage(_ t: URLSessionWebSocketTask, timeout: Double) async -> URLSessionWebSocketTask.Message? {
+        await withTaskGroup(of: URLSessionWebSocketTask.Message?.self) { group in
+            group.addTask { do { return try await t.receive() } catch { return nil } }
+            group.addTask { try? await Task.sleep(for: .seconds(timeout)); return nil }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
     }
 
     private func nextID() -> String { rpc += 1; return "c\(rpc)" }
-
-    private func sendRaw(_ obj: [String: Any]) {
+    private func sendRaw(_ t: URLSessionWebSocketTask, _ obj: [String: Any]) {
         guard let d = try? JSONSerialization.data(withJSONObject: obj),
               let s = String(data: d, encoding: .utf8) else { return }
-        task?.send(.string(s)) { _ in }
+        t.send(.string(s)) { _ in }
+    }
+    private func sendRaw(_ obj: [String: Any]) {
+        guard let t = task else { return }
+        sendRaw(t, obj)
     }
 
-    private func startPing() {
-        ping?.cancel()
-        ping = Task { [weak self] in
+    private func startListen(_ t: URLSessionWebSocketTask) {
+        listenTask?.cancel()
+        listenTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(25))
-                self?.sendRaw(["op": "ping"])
+                do {
+                    let msg = try await t.receive()
+                    await MainActor.run { self?.handle(msg) }
+                } catch {
+                    await MainActor.run { self?.status = .failed("连接中断"); self?.waiting = false }
+                    break
+                }
             }
         }
     }
 
-    private func listen() {
-        task?.receive { [weak self] result in
-            guard let self else { return }
-            Task { @MainActor in
-                switch result {
-                case .success(let msg):
-                    self.handle(msg)
-                    self.listen()
-                case .failure(let e):
-                    self.status = .failed(e.localizedDescription)
-                    self.waiting = false
-                }
+    private func startPing(_ t: URLSessionWebSocketTask) {
+        ping?.cancel()
+        ping = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(25))
+                guard let self else { return }
+                await MainActor.run { self.sendRaw(t, ["op": "ping"]) }
             }
         }
     }
@@ -126,6 +150,7 @@ final class ChatClient {
               let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return }
 
         let op = obj["op"] as? String ?? ""
+        if op == "pong" { return }
         if op == "response" {
             if (obj["ok"] as? Bool) == false {
                 let err = obj["error"] as? [String: Any]
@@ -136,7 +161,6 @@ final class ChatClient {
             return
         }
         guard op == "event", (obj["domain"] as? String) == "chat" else { return }
-
         let data = obj["data"] as? [String: Any] ?? [:]
         let type = (data["type"] as? String) ?? (obj["event"] as? String) ?? ""
 
@@ -146,10 +170,6 @@ final class ChatClient {
             if !t.isEmpty { messages.append(ChatMessage(role: .bot, text: t)) }
             waiting = false
         case "user_message":
-            // Echo. Our own send already appended the bubble locally; the
-            // server stamps origin with the internal session id which ends in
-            // our client session id, so we can recognise and skip it. Messages
-            // from other clients (different origin) are shown.
             if isOwnEcho(data) { return }
             let t = richText(data)
             if !t.isEmpty { messages.append(ChatMessage(role: .user, text: t)) }
@@ -176,7 +196,7 @@ final class ChatClient {
 
     private func loadHistory(_ data: [String: Any]) {
         guard let arr = data["messages"] as? [[String: Any]] else { return }
-        guard messages.isEmpty else { return }   // don't clobber live messages on reconnect
+        guard messages.isEmpty else { return }
         var out: [ChatMessage] = []
         for m in arr {
             let isBot = (m["is_bot"] as? Bool) ?? ((m["type"] as? String) == "bot")
@@ -187,8 +207,6 @@ final class ChatClient {
         if !out.isEmpty { messages = out }
     }
 
-    /// Pull plain text from a chat payload: prefer "content", otherwise
-    /// concatenate "segments" (text kept, media replaced by a short tag).
     private func richText(_ d: [String: Any]) -> String {
         if let c = d["content"] as? String, !c.isEmpty { return c }
         guard let segs = d["segments"] as? [[String: Any]] else { return "" }
@@ -196,8 +214,7 @@ final class ChatClient {
         for seg in segs {
             let t = seg["type"] as? String ?? ""
             switch t {
-            case "text":
-                if let s = seg["data"] as? String { parts.append(s) }
+            case "text": if let s = seg["data"] as? String { parts.append(s) }
             case "image": parts.append("[图片]")
             case "emoji": parts.append("[表情]")
             case "voice": parts.append("[语音]")
@@ -218,11 +235,9 @@ final class ChatClient {
     }
 
     func disconnect() {
-        ping?.cancel()
+        ping?.cancel(); listenTask?.cancel()
         sendRaw(["op": "call", "id": nextID(), "domain": "chat", "method": "session.close", "session": sessionID])
         task?.cancel(with: .normalClosure, reason: nil)
-        task = nil
-        status = .idle
-        waiting = false
+        task = nil; status = .idle; waiting = false
     }
 }
