@@ -14,11 +14,13 @@ MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Lbcheng1145/m
 | --- | --- |
 | 首页（活动/六宫格/存储/统计/趋势/Token/Prompt缓存/资讯） | ✅ 已完成，接真实 API，模拟器截图验证 |
 | 机器人管理（统计/新建/重命名/克隆/删除/启停/切换） | ✅ 已完成，接真实 API，截图验证 |
-| 活动流 / 模型列表 / 设置 | ✅ 已完成 |
-| 日志（实时） | ✅ 已完成，统一 WS 订阅 logs/main，snapshot + entry |
+| 管理页（设置索引） | ✅ 已完成（配置/资源/扩展/高级工具/运行日志/系统）|
+| 设置页 | ✅ 6 Tab（通用/机器人/外观/安全/其他/关于）；安全页接 auth/update、auth/regenerate |
+| 机器人管理 | ✅ PageFrame(圆角8/2px)+DataPanel、3 秒轮询、详情折叠 |
+| 日志（实时） | ✅ 棕色终端 + 工具栏（搜索/来源/筛选/跟随/导出/清空/字号行距）；自适应 ws |
 | 登录 | WKWebView + App-Bound Domains + Safari UA |
-| 原生聊天（WebSocket） | ✅ 已确认收发：发送 → user_message 回声 + typing + **bot_message** 回复 |
-| CI 模拟器截图 | ✅ 已验证，home / manage / chat / logs 四页正常渲染 |
+| 原生聊天 | ✅ 会话列表(真实 /api/chat/sessions) + 对话页(自适应 ws、头像/玻璃状态头/消息「名称·时间」分组) |
+| CI 模拟器截图 | ✅ 七页 home/manage/chat/logs/settings/bots/room；模拟器冷启动约 5-7 分钟 |
 
 ## 3. 环境
 
@@ -93,6 +95,8 @@ GET   .../proxy/api/webui/config/model
 `.github/workflows/build.yml` 三个 job：
 - `simulator` 编译
 - `screenshot` boot iOS 26 模拟器 → 装 app → 用 `GM_TEST_COOKIE`/`GM_TEST_TAB`/`GM_TEST_CHAT_TEXT` 启动 → 截图 → artifact `app-screenshots`
+  - `GM_TEST_TAB` 可选：home / manage / chat / logs / settings / bots / room（room 直接打开聊天室对话页）
+  - ⚠️ CI 的 `GM_TEST_COOKIE` 只含 `gm-sso`、无面板会话 `maibot_host_session`，因此**需要面板会话的动态页（日志、聊天室）在 CI 截图里连不上**；真机 WebView 登录会同时拿到两个 cookie，功能正常。
 - `ipa` 未签名 IPA
 
 测试钩子在 `Core/TestSupport.swift`。secret `GM_TEST_COOKIE` 已配（30 天 gm-sso）。
@@ -115,9 +119,11 @@ GET   .../proxy/api/webui/config/model
 ```
 MaiBot/
 ├── MaiBotApp.swift / Info.plist / MaiBot.entitlements
-├── Core/  Theme, Models, APIClient, AuthStore, ChatClient, LogsClient, TestSupport
-└── Features/  RootView(含原生聊天), LoginView, DashboardView, BotsView,
-              ActivityView, ModelListView, SettingsView, LogsView
+├── Core/  Theme, Motion, DesignTokens, Models, APIClient, AuthStore,
+│         ChatClient, LogsClient, TestSupport
+└── Features/  RootView(含 Tab 栏/聊天室), LoginView, DashboardView, BotsView,
+              ChatListView, ManagementIndexView, ActivityView, ModelListView,
+              SettingsView, LogsView
 ```
 
 ## 9. 给新会话的第一句话（直接粘贴）
