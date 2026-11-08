@@ -59,6 +59,7 @@ private struct ModuleOption: Identifiable, Hashable {
 struct LogsView: View {
     @Environment(APIClient.self) private var client
     @Environment(\.palette) private var p
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var logs: LogsClient?
     @State private var search = ""
@@ -229,7 +230,7 @@ struct LogsView: View {
             .background(Color(hex: 0x211607))
             .onChange(of: filtered.count) { _, _ in
                 guard autoFollow else { return }
-                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) { proxy.scrollTo("bottom", anchor: .bottom) }
             }
         }
         .background(Color(hex: 0x633312))

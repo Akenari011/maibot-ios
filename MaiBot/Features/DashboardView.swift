@@ -21,6 +21,7 @@ struct DashboardView: View {
     @State private var error: String?
     @State private var range: Int = 24
     @State private var statusFlipped = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var onOpenChat: () -> Void = {}
 
     private var hourLabel: String {
@@ -101,7 +102,7 @@ struct DashboardView: View {
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             }
             .rotation3DEffect(.degrees(statusFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
-            .animation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.46), value: statusFlipped)
+            .animation(reduceMotion ? nil : .timingCurve(0.22, 1, 0.36, 1, duration: 0.46), value: statusFlipped)
             .contentShape(.rect)
             .onTapGesture { statusFlipped.toggle() }
         }
