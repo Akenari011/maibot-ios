@@ -47,6 +47,7 @@ struct PromptsView: View {
         .background(p.bg)
         .navigationTitle("提示词管理")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 

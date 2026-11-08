@@ -37,6 +37,7 @@ struct MemorySourcesView: View {
         .background(p.bg)
         .navigationTitle("长期记忆")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 

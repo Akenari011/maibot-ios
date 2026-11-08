@@ -40,6 +40,7 @@ struct PluginsView: View {
         .background(p.bg)
         .navigationTitle("插件配置")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 

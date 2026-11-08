@@ -34,6 +34,7 @@ struct ConfigBrowserView: View {
         .background(p.bg)
         .navigationTitle("麦麦设置")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 

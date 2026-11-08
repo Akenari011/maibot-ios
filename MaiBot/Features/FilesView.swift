@@ -39,6 +39,7 @@ struct FilesView: View {
         .background(p.bg)
         .navigationTitle("数据传输")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
         .task { await load() }
     }
 
