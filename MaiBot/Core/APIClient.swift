@@ -32,6 +32,9 @@ final class APIClient {
         didSet { UserDefaults.standard.set(baseURL.absoluteString, forKey: Self.baseKey) }
     }
     var sessionCookie: String?
+    /// The panel's own session (maibot_host_session_*), minted by the gateway on
+    /// an API response. Needed for the websocket handshake.
+    var panelCookie: String?
 
     private static let baseKey = "maibot.baseURL"
     private let session: URLSession
@@ -74,6 +77,7 @@ final class APIClient {
         do { (data, resp) = try await session.data(for: req) }
         catch { throw APIError.transport(error) }
         guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        capturePanel(http)
         if http.statusCode == 401 { throw APIError.unauthorized }
         guard (200..<300).contains(http.statusCode) else {
             let msg = (try? JSONDecoder().decode(APIErrorBody.self, from: data))?.display
@@ -83,6 +87,22 @@ final class APIClient {
         do { return try JSONDecoder().decode(T.self, from: data) }
         catch { throw APIError.decoding(error) }
     }
+
+    private func capturePanel(_ http: HTTPURLResponse) {
+        for (k, v) in http.allHeaderFields {
+            guard String(describing: k).lowercased() == "set-cookie" else { continue }
+            let raw = String(describing: v)
+            for part in raw.components(separatedBy: ",") {
+                let first = part.split(separator: ";").first.map(String.init) ?? part
+                let t = first.trimmingCharacters(in: .whitespaces)
+                if t.hasPrefix(APIClient.panelPrefix) {
+                    panelCookie = t
+                }
+            }
+        }
+    }
+
+    static let panelPrefix = "maibot_host_session_*"
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
         try await send(try makeRequest(path))
@@ -94,6 +114,7 @@ final class APIClient {
         let req = try makeRequest(path, method: method, body: body)
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        capturePanel(http)
         if http.statusCode == 401 { throw APIError.unauthorized }
         guard (200..<300).contains(http.statusCode) else {
             let msg = (try? JSONDecoder().decode(APIErrorBody.self, from: data))?.display

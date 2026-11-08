@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct RootView: View {
     @Environment(AuthStore.self) private var auth
@@ -32,9 +31,17 @@ enum ManageRoute: Hashable { case settings }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
-    @State private var tab: AppTab = .home
+    @State private var tab: AppTab
     @State private var homePath = NavigationPath()
     @State private var managePath = NavigationPath()
+
+    init() {
+        switch TestSupport.startTab {
+        case "chat":   _tab = State(initialValue: .chat)
+        case "manage": _tab = State(initialValue: .manage)
+        default:       _tab = State(initialValue: .home)
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -119,48 +126,147 @@ struct MainShell: View {
     }
 }
 
-// MARK: - Chat
+// MARK: - Chat (native, over websocket)
 
 struct ChatView: View {
-    @Environment(\.palette) private var p
     @Environment(APIClient.self) private var client
+    @Environment(\.palette) private var p
+
+    @State private var chat: ChatClient?
     @State private var draft = ""
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("聊天").font(.system(size: 30, weight: .black)).foregroundStyle(p.text)
+            header
+            if let chat {
+                transcript(chat)
+                inputBar(chat)
+            } else {
+                Spacer()
+                ProgressView()
                 Spacer()
             }
-            .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
-
-            Spacer()
-            VStack(spacing: 16) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 44, weight: .light)).foregroundStyle(p.textTertiary)
-                Text("会话需在完整面板中打开").font(.system(size: 17, weight: .semibold)).foregroundStyle(p.text)
-                Text("实时聊天依赖实例的消息通道（WebSocket），\n原生端尚未接入。").font(.system(size: 14))
-                    .multilineTextAlignment(.center).foregroundStyle(p.textSecondary)
-                Button {
-                    var s = client.baseURL.absoluteString
-                    if s.hasSuffix("/") { s.removeLast() }
-                    if let u = URL(string: s + "/chat") { UIApplication.shared.open(u) }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "safari").font(.system(size: 14))
-                        Text("在浏览器中打开聊天").font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 11)
-                    .background(p.orange, in: .capsule)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 4)
-            }
-            Spacer()
-            Spacer().frame(height: 80)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
+        .task {
+            if chat == nil {
+                let c = ChatClient(client: client)
+                chat = c
+                await c.connect()
+            }
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Text("聊天").font(.system(size: 30, weight: .black)).foregroundStyle(p.text)
+            if let chat {
+                switch chat.status {
+                case .ready:
+                    statusDot("已连接", p.green)
+                case .connecting:
+                    statusDot("连接中…", p.orange)
+                case .idle:
+                    statusDot("未连接", p.textTertiary)
+                case .failed(let m):
+                    statusDot("连接失败", .red).help(m)
+                }
+            }
+            Spacer()
+            if case .failed = chat?.status {
+                Button("重连") { Task { await chat?.connect() } }
+                    .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+            }
+        }
+        .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
+    }
+
+    private func statusDot(_ t: String, _ c: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(c).frame(width: 7, height: 7)
+            Text(t).font(.system(size: 12, weight: .medium)).foregroundStyle(c)
+        }
+        .padding(.horizontal, 9).padding(.vertical, 4)
+        .background(c.opacity(0.12), in: .capsule)
+    }
+
+    private func transcript(_ chat: ChatClient) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 12) {
+                    if chat.messages.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 40, weight: .light)).foregroundStyle(p.textTertiary)
+                            Text("和麦麦说点什么").font(.system(size: 15)).foregroundStyle(p.textSecondary)
+                        }
+                        .padding(.top, 80)
+                    }
+                    ForEach(chat.messages) { m in
+                        bubble(m)
+                    }
+                    if chat.waiting {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("麦麦正在输入…").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    Color.clear.frame(height: 1).id("end")
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+            }
+            .onChange(of: chat.messages.count) { _, _ in
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("end", anchor: .bottom) }
+            }
+            .onChange(of: chat.messages.last?.text ?? "") { _, _ in
+                proxy.scrollTo("end", anchor: .bottom)
+            }
+        }
+    }
+
+    private func bubble(_ m: ChatMessage) -> some View {
+        HStack {
+            if m.role == .user { Spacer(minLength: 48) }
+            Text(m.text)
+                .font(.system(size: 15))
+                .foregroundStyle(m.role == .user ? .white : p.text)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(m.role == .user ? p.orange : p.card,
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    if m.role == .bot {
+                        RoundedRectangle(cornerRadius: 16).strokeBorder(p.separator)
+                    }
+                }
+                .textSelection(.enabled)
+            if m.role == .bot { Spacer(minLength: 48) }
+        }
+    }
+
+    private func inputBar(_ chat: ChatClient) -> some View {
+        HStack(spacing: 10) {
+            TextField("发送消息…", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
+                .font(.system(size: 15))
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(p.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(p.separator) }
+            Button {
+                let t = draft; draft = ""; chat.send(t)
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 16)).foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Color(hex: 0xB2B0AB) : p.orange, in: .circle)
+            }
+            .buttonStyle(.plain)
+            .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 84)
     }
 }

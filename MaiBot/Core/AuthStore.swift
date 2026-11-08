@@ -38,6 +38,12 @@ final class AuthStore {
     // MARK: - Restore on launch
 
     func restore(client: APIClient) async {
+        // CI screenshot hook: a launch env var can pre-seed the gateway cookie.
+        if let injected = TestSupport.injectedCookie {
+            client.sessionCookie = injected
+            state = .loggedIn
+            return
+        }
         guard let saved = Keychain.read(service: service, account: keychainAccount),
               !saved.isEmpty else {
             state = .loggedOut
