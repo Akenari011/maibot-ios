@@ -67,6 +67,8 @@ struct LogsView: View {
     @State private var sourcesOpen = false
     @State private var exportURL: URL?
     @State private var hiddenModules: Set<String> = []
+    @State private var dateFrom: Date?
+    @State private var dateTo: Date?
 
     @AppStorage("log.level") private var levelFilterRaw = "INFO"
     @AppStorage("log.font") private var fontRaw = "xs"
@@ -121,6 +123,10 @@ struct LogsView: View {
         let minRank = levelFilter == .all ? Int.min : LogLevels.rank(levelFilter.rawValue)
         return allEntries.filter { e in
             if hiddenModules.contains(e.module) { return false }
+            if let d = parseTime(e.timestamp) {
+                if let df = dateFrom, d < Calendar.current.startOfDay(for: df) { return false }
+                if let dt = dateTo, d > (Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: dt)) ?? dt) { return false }
+            }
             if minRank != Int.min, LogLevels.rank(e.level) < minRank { return false }
             if !q.isEmpty {
                 let hit = e.message.lowercased().contains(q)
@@ -268,6 +274,18 @@ struct LogsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func parseTime(_ s: String) -> Date? {
+        let t = s.trimmingCharacters(in: .whitespaces)
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "MM-dd HH:mm:ss"
+        guard let d = f.date(from: t) else { return nil }
+        let year = Calendar.current.component(.year, from: Date())
+        var comps = Calendar.current.dateComponents([.month, .day, .hour, .minute, .second], from: d)
+        comps.year = year
+        return Calendar.current.date(from: comps)
+    }
+
     private func shortTimestamp(_ s: String) -> String {
         let t = s.trimmingCharacters(in: .whitespaces)
         if t.count >= 19 {
@@ -335,8 +353,24 @@ struct LogsView: View {
                     }
                     Toggle("自动跟随最新", isOn: $autoFollow)
                 }
+                Section("时间范围") {
+                    HStack {
+                        Text("起始")
+                        Spacer()
+                        DatePicker("", selection: Binding(get: { dateFrom ?? Date() }, set: { dateFrom = $0 }), displayedComponents: .date)
+                            .labelsHidden()
+                        if dateFrom != nil { Button("清除") { dateFrom = nil }.font(.system(size: 12)).foregroundStyle(.red) }
+                    }
+                    HStack {
+                        Text("结束")
+                        Spacer()
+                        DatePicker("", selection: Binding(get: { dateTo ?? Date() }, set: { dateTo = $0 }), displayedComponents: .date)
+                            .labelsHidden()
+                        if dateTo != nil { Button("清除") { dateTo = nil }.font(.system(size: 12)).foregroundStyle(.red) }
+                    }
+                }
                 Section {
-                    Button("重置筛选", role: .destructive) { search = ""; levelFilterRaw = "INFO" }
+                    Button("重置筛选", role: .destructive) { search = ""; levelFilterRaw = "INFO"; dateFrom = nil; dateTo = nil }
                 }
             }
             .navigationTitle("筛选")
