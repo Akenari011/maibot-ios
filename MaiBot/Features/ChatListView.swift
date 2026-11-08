@@ -37,12 +37,10 @@ struct ChatListView: View {
                 }
 
                 if !filtered.isEmpty {
-                    section("麦麦的聊天流") {
+                    section("麦麦的聊天流（只读）") {
                         ForEach(filtered) { s in
-                            NavigationLink { ChatView() } label: {
-                                ChatRowView(icon: "person.2.fill", title: s.displayName,
-                                            subtitle: s.subtitle, time: s.timeText, online: false, avatarTint: p.textSecondary)
-                            }.buttonStyle(PressableStyle())
+                            ChatRowView(icon: "person.2.fill", title: s.displayName,
+                                        subtitle: s.subtitle, time: s.timeText, online: false, avatarTint: p.textSecondary)
                             if s.id != filtered.last?.id { rowDivider }
                         }
                     }
