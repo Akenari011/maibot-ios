@@ -217,6 +217,10 @@ struct LogsView: View {
                 Text(logs.debug).font(.system(size: 9)).foregroundStyle(p.textTertiary)
             }
             Spacer()
+            if case .failed = logs.status {
+                Button("重连") { Task { await logs.connect() } }
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(p.orange)
+            }
         }
         .padding(.horizontal, 16).padding(.bottom, 6)
     }
