@@ -26,7 +26,7 @@ struct RootView: View {
 }
 
 enum AppTab: Hashable { case home, chat, manage }
-enum HomeRoute: Hashable { case activity, models, settings, logs }
+enum HomeRoute: Hashable { case activity, models, settings, logs, files }
 enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, settings, logs, other(String) }
 
 struct MainShell: View {
@@ -73,6 +73,7 @@ struct MainShell: View {
                                 case .models:   ModelListView()
                                 case .settings: SettingsView()
                                 case .logs:     LogsView()
+                                case .files:    FilesView()
                                 }
                             }
                     }

@@ -222,11 +222,14 @@ struct DashboardView: View {
                         StorageRow(label: r.0, value: fmtSize(r.1), fraction: total > 0 ? r.1 / total : 0)
                     }
                 }
-                HStack {
-                    Spacer()
-                    Text("管理存储").font(.system(size: 15, weight: .medium)).foregroundStyle(p.orange)
-                    Image(systemName: "arrow.right").font(.system(size: 12, weight: .medium)).foregroundStyle(p.orange)
+                NavigationLink(value: HomeRoute.files) {
+                    HStack {
+                        Spacer()
+                        Text("管理存储").font(.system(size: 15, weight: .medium)).foregroundStyle(p.orange)
+                        Image(systemName: "arrow.right").font(.system(size: 12, weight: .medium)).foregroundStyle(p.orange)
+                    }
                 }
+                .buttonStyle(.plain)
             }
         }
     }
