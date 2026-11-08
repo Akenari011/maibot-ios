@@ -127,7 +127,19 @@ struct ManagementIndexView: View {
 
 struct PlaceholderPage: View {
     @Environment(\.palette) private var p
+    @Environment(APIClient.self) private var client
     let title: String
+
+    private var webURL: URL? {
+        let map = ["插件市场": "/plugins", "推理过程": "/reasoning-process",
+                   "适配器设置": "/adapter-management", "学习": "/resource/learning",
+                   "长期记忆": "/resource/knowledge-base"]
+        guard let path = map[title] else { return nil }
+        var comp = URLComponents(url: client.baseURL, resolvingAgainstBaseURL: false)
+        comp?.path = path
+        return comp?.url
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "hammer").font(.system(size: 34, weight: .light)).foregroundStyle(p.textTertiary)
@@ -135,6 +147,18 @@ struct PlaceholderPage: View {
             Text("该页面正在按网页版重构中").font(.system(size: 13)).foregroundStyle(p.textSecondary)
             Text("部分子页在网页版依赖额外登录态或运行参数（如插件市场、推理过程、适配器设置），iOS 暂以占位保留，可先用网页版操作。")
                 .font(.system(size: 11)).foregroundStyle(p.textTertiary).multilineTextAlignment(.center).padding(.horizontal, 30)
+            if let url = webURL {
+                Link(destination: url) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "safari")
+                        Text("在网页版打开").font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(p.orange, in: Capsule())
+                }
+                .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
