@@ -59,6 +59,7 @@ private struct ModuleOption: Identifiable, Hashable {
 struct LogsView: View {
     @Environment(APIClient.self) private var client
     @Environment(\.palette) private var p
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var logs: LogsClient?
@@ -103,6 +104,9 @@ struct LogsView: View {
             if let url = exportURL { LogsShareSheet(items: [url]) }
         }
         .onAppear { hiddenModules = Set(hiddenRaw.split(separator: ",").map(String.init)) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await logs?.connect() } } else { logs?.disconnect() }
+        }
         .task {
             if logs == nil {
                 let c = LogsClient(client: client)
