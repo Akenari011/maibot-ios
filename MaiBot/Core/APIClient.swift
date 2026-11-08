@@ -187,6 +187,11 @@ final class APIClient {
         return r.items
     }
 
+    func chatStreams(botID: String) async throws -> [ChatStream] {
+        let r: ChatStreamList = try await get(proxy(botID, "chat/sessions?limit=1000"))
+        return r.sessions
+    }
+
     func models(botID: String) async throws -> [ModelConfig.ModelInfo] {
         let r: ModelConfigResponse = try await get(proxy(botID, "config/model"))
         return r.config.models ?? []

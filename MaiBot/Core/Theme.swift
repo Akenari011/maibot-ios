@@ -24,17 +24,17 @@ struct Palette {
     let progressFill: Color
 
     static let panel = Palette(
-        bg: Color(hex: 0xF5F3EE),
+        bg: Color(hex: 0xF5F5F7),
         card: Color(hex: 0xFFFFFF),
-        text: Color(hex: 0x1C1C1E),
-        textSecondary: Color(hex: 0x8A8A8E),
-        textTertiary: Color(hex: 0xB2B0AB),
-        separator: Color(hex: 0xEFEDE8),
-        green: Color(hex: 0x22C55E),
-        orange: Color(hex: 0xE8862C),
-        iconCircle: Color(hex: 0xF0EEE9),
-        progressTrack: Color(hex: 0xF7DCC4),
-        progressFill: Color(hex: 0x1C1C1E)
+        text: Color(hex: 0x1D1D1F),
+        textSecondary: Color(hex: 0x6E6E73),
+        textTertiary: Color(hex: 0xA1A1A6),
+        separator: Color(hex: 0xE8E8ED),
+        green: Color(hex: 0x34C759),
+        orange: Color(hex: 0xE06F06),
+        iconCircle: Color(hex: 0xEFEFF1),
+        progressTrack: Color(hex: 0xEFEFF1),
+        progressFill: Color(hex: 0xE06F06)
     )
 }
 

@@ -263,6 +263,27 @@ enum ISO8601 {
     }()
     static func date(from s: String) -> Date? { a.date(from: s) ?? b.date(from: s) }
 }
+// MARK: - Chat streams (chat tab list)
+
+struct ChatStream: Codable, Identifiable {
+    let sessionID: String
+    let displayName: String
+    let chatType: String?
+    let platform: String?
+    let lastActiveAt: String?
+    var id: String { sessionID }
+    enum CodingKeys: String, CodingKey {
+        case sessionID = "session_id"
+        case displayName = "display_name"
+        case chatType = "chat_type"
+        case platform
+        case lastActiveAt = "last_active_at"
+    }
+    var subtitle: String { (chatType ?? "") == "group" ? "群聊" : "私聊" }
+}
+
+struct ChatStreamList: Codable { let sessions: [ChatStream] }
+
 // MARK: - Model config
 
 struct ModelConfigResponse: Codable {

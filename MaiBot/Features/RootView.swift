@@ -27,13 +27,14 @@ struct RootView: View {
 
 enum AppTab: Hashable { case home, chat, manage }
 enum HomeRoute: Hashable { case activity, models, settings, logs }
-enum ManageRoute: Hashable { case settings }
+enum ManageRoute: Hashable { case bots, settings, logs, other(String) }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
     @State private var tab: AppTab
     @State private var homePath: NavigationPath
     @State private var managePath = NavigationPath()
+    @Namespace private var tabNS
 
     init() {
         var hp = NavigationPath()
@@ -65,13 +66,16 @@ struct MainShell: View {
                             }
                     }
                 case .chat:
-                    ChatView()
+                    NavigationStack { ChatListView() }
                 case .manage:
                     NavigationStack(path: $managePath) {
-                        BotsView()
+                        ManagementIndexView()
                             .navigationDestination(for: ManageRoute.self) { route in
                                 switch route {
-                                case .settings: SettingsView()
+                                case .bots:      BotsView()
+                                case .settings:  SettingsView()
+                                case .logs:      LogsView()
+                                case .other(let title): PlaceholderPage(title: title)
                                 }
                             }
                     }
@@ -88,16 +92,16 @@ struct MainShell: View {
         HStack(spacing: 12) {
             HStack(spacing: 0) {
                 tabItem(.home, "首页", "house")
-                tabItem(.chat, "聊天", "bubble.left")
+                tabItem(.chat, "聊天", "message")
                 tabItem(.manage, "管理", "square.grid.2x2")
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-            .glassEffect(.regular, in: .capsule)
+            .padding(4)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay { Capsule().strokeBorder(Color.white.opacity(0.55), lineWidth: 0.5) }
             .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
 
             Button {
-                withAnimation { tab = .home; homePath = NavigationPath() }
+                withAnimation(Motion.tab) { tab = .home; homePath = NavigationPath() }
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20, weight: .medium))
@@ -105,7 +109,8 @@ struct MainShell: View {
                     .frame(width: 56, height: 56)
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular, in: .circle)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay { Circle().strokeBorder(Color.white.opacity(0.55), lineWidth: 0.5) }
             .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
         }
         .padding(.horizontal, 16)
@@ -115,18 +120,24 @@ struct MainShell: View {
     private func tabItem(_ t: AppTab, _ label: String, _ icon: String) -> some View {
         let on = tab == t
         return Button {
-            withAnimation(.easeInOut(duration: 0.18)) { tab = t }
+            withAnimation(Motion.tab) { tab = t }
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: on ? .semibold : .regular))
-                    .foregroundStyle(on ? p.orange : p.textSecondary)
+                    .foregroundStyle(on ? p.orange : p.text)
                 Text(label)
-                    .font(.system(size: 11, weight: on ? .semibold : .regular))
-                    .foregroundStyle(on ? p.orange : p.textSecondary)
+                    .font(.system(size: 10, weight: on ? .semibold : .regular))
+                    .foregroundStyle(on ? p.orange : p.text)
             }
             .frame(width: 84)
             .padding(.vertical, 4)
+            .background {
+                if on {
+                    Capsule().fill(p.orange.opacity(0.12))
+                        .matchedGeometryEffect(id: "tabIndicator", in: tabNS)
+                }
+            }
         }
         .buttonStyle(.plain)
     }
