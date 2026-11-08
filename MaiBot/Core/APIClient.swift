@@ -133,7 +133,8 @@ final class APIClient {
 
     func checkAuth() async throws -> Bool {
         struct R: Codable { let authenticated: Bool }
-        return try await get("/api/webui/auth/check").authenticated
+        let r: R = try await get("/api/webui/auth/check")
+        return r.authenticated
     }
 
     func hostMode() async throws -> HostMode {
