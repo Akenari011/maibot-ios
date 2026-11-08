@@ -40,6 +40,7 @@ struct DashboardView: View {
                 }
                 botStatusCard
                 gridCard
+                hitokotoLine
                 if let cache { storageCard(cache) }
                 if let dash { statsCard(dash.summary) }
                 if let dash { trendCard(dash) }
@@ -177,6 +178,21 @@ struct DashboardView: View {
             .padding(.vertical, 4)
           }
         }
+    }
+
+    private var hitokotoLine: some View {
+        let quotes: [(String, String)] = [
+            ("生活明朗，万物可爱。", "— 麦麦一言"),
+            ("慢慢来，比较快。", "— 麦麦一言"),
+            ("把复杂留给我，把简单留给你。", "— 麦麦一言")
+        ]
+        let q = quotes[Calendar.current.component(.day, from: Date()) % quotes.count]
+        return HStack(spacing: 6) {
+            Text("『" + q.0 + "』").font(.system(size: 13)).italic().foregroundStyle(p.textSecondary)
+            Text(q.1).font(.system(size: 12)).foregroundStyle(p.textTertiary)
+            Spacer()
+        }
+        .padding(.horizontal, 4)
     }
 
     // MARK: storage
