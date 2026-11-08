@@ -9,6 +9,7 @@ struct BotsView: View {
     @Environment(APIClient.self) private var client
     @Environment(AuthStore.self) private var auth
     @Environment(\.palette) private var p
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var bots: [Bot] = []
     @State private var selectedID: String?
@@ -42,7 +43,7 @@ struct BotsView: View {
         .refreshable { await load() }
         .task {
             while !Task.isCancelled {
-                await load()
+                if scenePhase == .active { await load() }
                 try? await Task.sleep(for: .seconds(3))
             }
         }
