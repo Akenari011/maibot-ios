@@ -241,8 +241,8 @@ struct ChatView: View {
                         }
                         .padding(.top, 80)
                     }
-                    ForEach(chat.messages) { m in
-                        bubble(m)
+                    ForEach(Array(chat.messages.enumerated()), id: \.element.id) { idx, m in
+                        bubble(m, showMeta: idx == 0 || chat.messages[idx - 1].role != m.role)
                     }
                     if chat.waiting {
                         HStack(spacing: 6) {
@@ -266,7 +266,7 @@ struct ChatView: View {
     }
 
     @ViewBuilder
-    private func bubble(_ m: ChatMessage) -> some View {
+    private func bubble(_ m: ChatMessage, showMeta: Bool) -> some View {
         if m.role == .system {
             HStack {
                 Spacer()
@@ -277,19 +277,26 @@ struct ChatView: View {
                 Spacer()
             }
         } else {
-            HStack(alignment: .bottom, spacing: 8) {
-                if m.role == .user { Spacer(minLength: 40) }
-                if m.role == .bot { avatar(bot: true) }
-                Text(m.text)
-                    .font(.system(size: 15))
-                    .foregroundStyle(m.role == .user ? .white : p.text)
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(m.role == .user ? p.orange : p.iconCircle,
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: 280, alignment: m.role == .user ? .trailing : .leading)
-                if m.role == .user { avatar(bot: false) }
-                if m.role == .bot { Spacer(minLength: 40) }
+            VStack(alignment: m.role == .user ? .trailing : .leading, spacing: 3) {
+                if showMeta {
+                    let name = m.sender.isEmpty ? (m.role == .bot ? "麦麦" : "我") : m.sender
+                    Text(m.time.isEmpty ? name : "\(name) · \(m.time)")
+                        .font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                }
+                HStack(alignment: .bottom, spacing: 8) {
+                    if m.role == .user { Spacer(minLength: 40) }
+                    if m.role == .bot { avatar(bot: true) }
+                    Text(m.text)
+                        .font(.system(size: 15))
+                        .foregroundStyle(m.role == .user ? .white : p.text)
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(m.role == .user ? p.orange : p.iconCircle,
+                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: 280, alignment: m.role == .user ? .trailing : .leading)
+                    if m.role == .user { avatar(bot: false) }
+                    if m.role == .bot { Spacer(minLength: 40) }
+                }
             }
         }
     }

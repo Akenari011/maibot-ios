@@ -20,6 +20,8 @@ struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let role: Role
     var text: String
+    var sender: String = ""
+    var time: String = ""
     enum Role { case user, bot, system }
 }
 
@@ -167,12 +169,12 @@ final class ChatClient {
         switch type {
         case "bot_message":
             let t = richText(data)
-            if !t.isEmpty { messages.append(ChatMessage(role: .bot, text: t)) }
+            if !t.isEmpty { messages.append(ChatMessage(role: .bot, text: t, sender: senderName(data, fallback: "麦麦"), time: shortTime(data))) }
             waiting = false
         case "user_message":
             if isOwnEcho(data) { return }
             let t = richText(data)
-            if !t.isEmpty { messages.append(ChatMessage(role: .user, text: t)) }
+            if !t.isEmpty { messages.append(ChatMessage(role: .user, text: t, sender: senderName(data, fallback: "我"), time: shortTime(data))) }
         case "typing":
             waiting = (data["is_typing"] as? Bool) ?? false
         case "history":
@@ -202,9 +204,23 @@ final class ChatClient {
             let isBot = (m["is_bot"] as? Bool) ?? ((m["type"] as? String) == "bot")
             let t = richText(m)
             if t.isEmpty { continue }
-            out.append(ChatMessage(role: isBot ? .bot : .user, text: t))
+            let name = (m["sender_name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (isBot ? "麦麦" : "我")
+            out.append(ChatMessage(role: isBot ? .bot : .user, text: t, sender: name, time: shortTime(m)))
         }
         if !out.isEmpty { messages = out }
+    }
+
+    private func senderName(_ d: [String: Any], fallback: String) -> String {
+        if let s = d["sender"] as? [String: Any], let n = s["name"] as? String, !n.isEmpty { return n }
+        return fallback
+    }
+    private func shortTime(_ d: [String: Any]) -> String {
+        if let ts = d["timestamp"] as? Double, ts > 0 {
+            let f = DateFormatter(); f.dateFormat = "HH:mm"
+            return f.string(from: Date(timeIntervalSince1970: ts))
+        }
+        if let s = d["timestamp"] as? String, s.count >= 5 { return String(s.suffix(5)) }
+        return ""
     }
 
     private func richText(_ d: [String: Any]) -> String {
