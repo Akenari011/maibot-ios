@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var tab: SettingsTab = .general
     @State private var botName = "—"
     @State private var botStatus = "—"
+    @State private var storageText = "—"
 
     @State private var editingHost = false
     @State private var hostDraft = ""
@@ -185,6 +186,8 @@ struct SettingsView: View {
     private var otherTab: some View {
         VStack(spacing: 14) {
             card {
+                row("本地存储") { Spacer(); Text(storageText).font(.system(size: 14, design: .monospaced)).foregroundStyle(p.textSecondary) }
+                divider
                 row("清除日志缓存") { Spacer(); Button("清除") { notice = "已请求清除（客户端缓存）" }.font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange) }
                 divider
                 row("重置设置") { Spacer(); Button("重置") { confirmReset = true }.font(.system(size: 13, weight: .medium)).foregroundStyle(.red) }
@@ -228,6 +231,10 @@ struct SettingsView: View {
             if let list = try? await client.bots(), let b = list.first(where: { $0.botID == id }) {
                 botName = b.name; botStatus = b.statusLabel
             } else { botName = id }
+            if let c = try? await client.localCache(botID: id) {
+                let total = c.directories.reduce(0) { $0 + $1.totalSize } + c.database.totalSize
+                storageText = fmtSize(total)
+            }
         }
     }
     private func doUpdateToken() async {
