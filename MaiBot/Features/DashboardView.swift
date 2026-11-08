@@ -145,6 +145,8 @@ struct DashboardView: View {
                     }
                 }
                 .frame(height: 46)
+                Text("近 24h 请求 " + fmtCount(pts.reduce(0) { $0 + $1.requests }))
+                    .font(.system(size: 12)).foregroundStyle(p.textSecondary)
             } else {
                 Text("暂无数据").font(.system(size: 13)).foregroundStyle(p.textSecondary)
             }
