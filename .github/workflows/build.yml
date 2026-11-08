@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "${LATEST:-}" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
+          if [ -n "$LATEST" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
           xcodebuild -version
       - name: Install XcodeGen
         run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "${LATEST:-}" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
+          if [ -n "$LATEST" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
           xcodebuild -version
       - name: Install XcodeGen
         run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
@@ -78,7 +78,6 @@ jobs:
           xcrun simctl list runtimes | head -20
           if [ -z "$RUNTIME" ]; then echo "NO iOS 26 RUNTIME"; exit 1; fi
           DEVTYPE=$(xcrun simctl list devicetypes | grep -oE "com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-1[0-9]" | tail -1)
-          echo "devicetype: $DEVTYPE"
           DEV=$(xcrun simctl create "MaiBotTest" "$DEVTYPE" "$RUNTIME")
           echo "device: $DEV"
           xcrun simctl boot "$DEV" || true
@@ -89,11 +88,15 @@ jobs:
           xcrun simctl status_bar "$DEV" override --time "9:41" --batteryLevel 100 --cellularBars 4 || true
           for TAB in home manage chat; do
             echo "=== $TAB ==="
-            EXTRA=""
-            if [ "$TAB" = "chat" ]; then EXTRA="GM_TEST_CHAT_TEXT=你好，简单介绍一下你自己"; fi
-            env SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" $EXTRA \
-              xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
-            sleep 16
+            if [ "$TAB" = "chat" ]; then
+              SIMCTL_CHILD_GM_TEST_CHAT_TEXT="你好，简单介绍一下你自己" \
+                SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
+                xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
+            else
+              SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
+                xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
+            fi
+            sleep 18
             xcrun simctl io "$DEV" screenshot "shot-$TAB.png" || true
           done
           ls -la shot-*.png || true
@@ -111,7 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "${LATEST:-}" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
+          if [ -n "$LATEST" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
           xcodebuild -version
       - name: Install XcodeGen
         run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
