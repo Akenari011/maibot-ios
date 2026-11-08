@@ -24,7 +24,7 @@ struct PromptsView: View {
                 if languages.count > 1 {
                     SegmentedChips(items: languages, label: { $0 }, selection: $selected)
                 }
-                if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
+                if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 Text("提示词（\(current.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 ForEach(current) { f in
                     Panel(padding: 14) {

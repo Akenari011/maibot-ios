@@ -10,7 +10,7 @@ struct NewsListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
+                if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if items.isEmpty {
                     Text("暂无资讯").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 40)
                 }

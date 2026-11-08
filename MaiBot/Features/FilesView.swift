@@ -30,7 +30,7 @@ struct FilesView: View {
                 }
                 .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
                 Text("文件（\(filtered.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
-                if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
+                if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if filtered.isEmpty { Text("暂无文件").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30) }
                 ForEach(filtered) { f in
                     Panel(padding: 14) {

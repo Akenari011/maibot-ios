@@ -19,7 +19,7 @@ struct ConfigBrowserView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 if let e = error {
-                    Text(e).font(.system(size: 13)).foregroundStyle(.red)
+                    ErrorBanner(message: e) { Task { await load() } }
                 }
                 if let root {
                     JSONValueView(key: "config", value: root)

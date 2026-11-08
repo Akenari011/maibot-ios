@@ -25,7 +25,7 @@ struct StatisticsView: View {
                     Spacer()
                     SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
                 }
-                if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
+                if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if let d = data {
                     summaryCard(d.summary)
                     trendCard(d)
