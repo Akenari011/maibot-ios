@@ -67,6 +67,7 @@ struct LogsView: View {
     @State private var sourcesOpen = false
     @State private var exportURL: URL?
     @State private var hiddenModules: Set<String> = []
+    @State private var confirmClear = false
     @State private var dateFrom: Date?
     @State private var dateTo: Date?
 
@@ -91,6 +92,10 @@ struct LogsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
+        .confirmationDialog("清空本地日志？", isPresented: $confirmClear, titleVisibility: .visible) {
+            Button("清空", role: .destructive) { logs?.clear() }
+            Button("取消", role: .cancel) {}
+        } message: { Text("仅清除本机已接收的日志，不影响服务器。") }
         .navigationTitle("日志")
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $filterOpen) { filterSheet }
@@ -182,7 +187,7 @@ struct LogsView: View {
 
                 iconButton("square.and.arrow.up") { exportURL = makeExportFile() }
                     .disabled(filtered.isEmpty)
-                iconButton("trash") { logs?.clear() }
+                iconButton("trash") { confirmClear = true }
                     .disabled(allEntries.isEmpty)
             }
         }
