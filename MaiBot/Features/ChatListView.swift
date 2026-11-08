@@ -13,6 +13,8 @@ struct ChatListView: View {
     @Environment(\.palette) private var p
     @State private var streams: [ChatStream] = []
     @State private var search = ""
+    @State private var loading = false
+    @State private var error: String?
 
     private var filtered: [ChatStream] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
@@ -24,6 +26,8 @@ struct ChatListView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("聊天").font(.system(size: 34, weight: .bold)).tracking(-0.4).foregroundStyle(p.text)
                 searchField
+                if loading { ProgressView().frame(maxWidth: .infinity).padding(.top, 8) }
+                if let error { Text(error).font(.system(size: 12)).foregroundStyle(.red) }
 
                 section("我的会话") {
                     NavigationLink { ChatView() } label: {
@@ -75,10 +79,14 @@ struct ChatListView: View {
     }
 
     private func load() async {
+        loading = true; defer { loading = false }
         do {
             let mode = try await client.hostMode()
-            if let id = mode.selectedBotID { streams = (try? await client.chatStreams(botID: id)) ?? [] }
-        } catch { }
+            if let id = mode.selectedBotID {
+                streams = (try? await client.chatStreams(botID: id)) ?? []
+            }
+            error = nil
+        } catch { self.error = error.localizedDescription }
     }
 }
 
