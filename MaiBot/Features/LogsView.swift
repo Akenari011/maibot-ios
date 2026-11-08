@@ -202,6 +202,9 @@ struct LogsView: View {
             Text(logs.status == .ready ? "已连接" : "未连接").font(.system(size: 11)).foregroundStyle(p.text)
             Text("\(filtered.count) / \(allEntries.count) 条")
                 .font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary)
+            if !logs.debug.isEmpty {
+                Text(logs.debug).font(.system(size: 9)).foregroundStyle(p.textTertiary)
+            }
             Spacer()
         }
         .padding(.horizontal, 16).padding(.bottom, 6)

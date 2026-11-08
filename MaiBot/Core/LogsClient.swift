@@ -43,6 +43,7 @@ final class LogsClient {
 
     var status: Status = .idle
     var entries: [LogEntry] = []
+    private(set) var debug = ""
 
     private let maxEntries = 600
     private var task: URLSessionWebSocketTask?
@@ -57,11 +58,7 @@ final class LogsClient {
     private func wsURL() -> URL? {
         guard var comp = URLComponents(url: client.baseURL, resolvingAgainstBaseURL: false) else { return nil }
         comp.scheme = (client.baseURL.scheme == "https") ? "wss" : "ws"
-        if let id = botID, !id.isEmpty {
-            comp.path = "/api/host/bots/\(id)/proxy/api/webui/ws"
-        } else {
-            comp.path = "/api/webui/ws"
-        }
+        comp.path = "/api/webui/ws"
         comp.query = nil
         return comp.url
     }
@@ -135,7 +132,9 @@ final class LogsClient {
 
         let op = obj["op"] as? String ?? ""
         if op == "response" {
-            if (obj["ok"] as? Bool) == false {
+            let ok = (obj["ok"] as? Bool) ?? false
+            debug = ok ? "订阅已确认" : "订阅失败"
+            if !ok {
                 let err = obj["error"] as? [String: Any]
                 status = .failed((err?["message"] as? String) ?? "日志订阅失败")
             }
@@ -146,18 +145,27 @@ final class LogsClient {
         let data = obj["data"] as? [String: Any] ?? [:]
 
         if event == "snapshot" {
-            guard let arr = data["entries"] as? [[String: Any]] else { return }
-            entries = decode(arr)
+            guard let arr = data["entries"] as? [[String: Any]] else { debug = "快照无 entries"; return }
+            let list = decode(arr)
+            entries = list
+            debug = "快照 \(arr.count) 条/解析 \(list.count)"
         } else if event == "entry" {
             guard let e = data["entry"] as? [String: Any] else { return }
             append(decode([e]))
+            if entries.count == 1 { debug = "实时首条已到" }
         }
     }
 
     private func decode(_ arr: [[String: Any]]) -> [LogEntry] {
-        guard let d = try? JSONSerialization.data(withJSONObject: arr),
-              let list = try? decoder.decode([LogEntry].self, from: d) else { return [] }
-        return list
+        arr.compactMap { d -> LogEntry? in
+            guard let id = d["id"] as? String, let ts = d["timestamp"] as? String,
+                  let level = d["level"] as? String, let module = d["module"] as? String,
+                  let message = d["message"] as? String else { return nil }
+            return LogEntry(id: id, timestamp: ts, level: level, module: module, message: message,
+                            moduleColor: d["moduleColor"] as? String,
+                            moduleBold: d["moduleBold"] as? Bool,
+                            moduleDisplayName: d["moduleDisplayName"] as? String)
+        }
     }
 
     private func append(_ new: [LogEntry]) {
