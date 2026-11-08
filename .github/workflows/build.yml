@@ -86,17 +86,22 @@ jobs:
           test -d "$APP" || { echo "app missing"; ls -R build/sim/Build/Products || true; exit 1; }
           xcrun simctl install "$DEV" "$APP"
           xcrun simctl status_bar "$DEV" override --time "9:41" --batteryLevel 100 --cellularBars 4 || true
-          for TAB in home manage chat; do
+          for TAB in home manage chat logs; do
             echo "=== $TAB ==="
+            SLEEP=18
             if [ "$TAB" = "chat" ]; then
+              # The bot reply (event "bot_message") comes from the real model;
+              # give it enough time to arrive before the screenshot.
+              SLEEP=60
               SIMCTL_CHILD_GM_TEST_CHAT_TEXT="你好，简单介绍一下你自己" \
                 SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
                 xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
             else
+              if [ "$TAB" = "logs" ]; then SLEEP=20; fi
               SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
                 xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
             fi
-            sleep 18
+            sleep "$SLEEP"
             xcrun simctl io "$DEV" screenshot "shot-$TAB.png" || true
           done
           ls -la shot-*.png || true
