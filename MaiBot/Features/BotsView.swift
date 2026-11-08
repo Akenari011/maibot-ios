@@ -16,6 +16,12 @@ struct BotsView: View {
     @State private var busyID: String?
     @State private var updatedAt = Date()
 
+    @State private var newName = ""
+    @State private var renaming: Bot?
+    @State private var cloning: Bot?
+    @State private var deleting: Bot?
+    @State private var textDraft = ""
+
     private var runningCount: Int { bots.filter(\.isRunning).count }
 
     var body: some View {
@@ -35,6 +41,20 @@ struct BotsView: View {
         .background(p.bg)
         .refreshable { await load() }
         .task { await load() }
+        .alert("重命名 Bot", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("新名称", text: $textDraft)
+            Button("取消", role: .cancel) {}
+            Button("保存") { if let b = renaming { Task { await rename(b) } } }
+        }
+        .alert("克隆 Bot", isPresented: Binding(get: { cloning != nil }, set: { if !$0 { cloning = nil } })) {
+            TextField("新实例名称", text: $textDraft)
+            Button("取消", role: .cancel) {}
+            Button("克隆") { if let b = cloning { Task { await clone(b) } } }
+        }
+        .confirmationDialog("删除后不可恢复", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
+            Button("删除", role: .destructive) { if let b = deleting { Task { await remove(b) } } }
+            Button("取消", role: .cancel) {}
+        } message: { Text(deleting?.name ?? "") }
     }
 
     private var header: some View {
@@ -55,9 +75,7 @@ struct BotsView: View {
                 Text("每个 Bot 独立运行，共用一个管理入口。").font(.system(size: 14)).foregroundStyle(p.textSecondary)
                 Spacer()
                 NavigationLink(value: ManageRoute.settings) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 16))
-                        .foregroundStyle(p.text)
+                    Image(systemName: "gearshape").font(.system(size: 16)).foregroundStyle(p.text)
                         .frame(width: 38, height: 38)
                         .background(p.card, in: RoundedRectangle(cornerRadius: 12))
                         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(p.separator) }
@@ -84,9 +102,9 @@ struct BotsView: View {
                 Text("机器人数量统计").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                 HStack(spacing: 0) {
                     statCol("全部 Bot", "\(bots.count)", p.text)
-                    divider
+                    rectDivider(34)
                     statCol("运行中", "\(runningCount)", p.orange, dot: p.green)
-                    divider
+                    rectDivider(34)
                     statCol("需要处理", "\(bots.count - runningCount)", p.text, dot: p.textTertiary)
                 }
                 GeometryReader { geo in
@@ -102,8 +120,8 @@ struct BotsView: View {
         }
     }
 
-    private var divider: some View {
-        Rectangle().fill(p.separator).frame(width: 1, height: 34)
+    private func rectDivider(_ h: CGFloat) -> some View {
+        Rectangle().fill(p.separator).frame(width: 1, height: h)
     }
 
     private func statCol(_ label: String, _ value: String, _ color: Color, dot: Color? = nil) -> some View {
@@ -124,18 +142,23 @@ struct BotsView: View {
                 Text("新建 Bot").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                 Text("创建独立配置和数据目录；创建后不会自动启动或登录。")
                     .font(.system(size: 13)).foregroundStyle(p.textSecondary)
-                TextField("例如：工作助手", text: .constant(""))
+                TextField("例如：工作助手", text: $newName)
                     .font(.system(size: 15))
                     .padding(.horizontal, 14).padding(.vertical, 12)
                     .background(p.card, in: RoundedRectangle(cornerRadius: 12))
                     .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(p.separator) }
-                HStack {
-                    Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
-                    Text("新建").font(.system(size: 15, weight: .semibold))
+                Button { Task { await create() } } label: {
+                    HStack {
+                        Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
+                        Text("新建").font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 13)
+                    .background(newName.trimmingCharacters(in: .whitespaces).isEmpty ? Color(hex: 0x9CA3AF) : p.text,
+                                in: RoundedRectangle(cornerRadius: 12))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity).padding(.vertical, 13)
-                .background(Color(hex: 0x9CA3AF), in: RoundedRectangle(cornerRadius: 12))
+                .buttonStyle(.plain)
+                .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty || busyID != nil)
             }
         }
     }
@@ -170,17 +193,29 @@ struct BotsView: View {
                         .background(bot.isRunning ? Color(hex: 0xDCFCE7) : p.iconCircle, in: .capsule)
                     Spacer()
                     if selectedID == bot.botID {
-                        Text("当前 Bot").font(.system(size: 12, weight: .medium)).foregroundStyle(p.text)
+                        Text("当前").font(.system(size: 12, weight: .medium)).foregroundStyle(p.text)
                             .padding(.horizontal, 10).padding(.vertical, 5)
                             .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(p.separator) }
+                    }
+                    Menu {
+                        Button { renaming = bot; textDraft = bot.name } label: { Label("重命名", systemImage: "pencil") }
+                        Button { cloning = bot; textDraft = bot.name + " 副本" } label: { Label("克隆", systemImage: "doc.on.doc") }
+                        if selectedID != bot.botID {
+                            Button { Task { await select(bot) } } label: { Label("设为当前", systemImage: "checkmark.circle") }
+                        }
+                        Divider()
+                        Button(role: .destructive) { deleting = bot } label: { Label("删除", systemImage: "trash") }
+                    } label: {
+                        Image(systemName: "ellipsis").font(.system(size: 16)).foregroundStyle(p.textSecondary)
+                            .frame(width: 30, height: 30)
                     }
                 }
 
                 HStack(spacing: 0) {
                     infoCol("进程 ID", bot.pid.map(String.init) ?? "—")
-                    rectDivider
+                    rectDivider(30)
                     infoCol("退出码", bot.exitCode.map(String.init) ?? "—")
-                    rectDivider
+                    rectDivider(30)
                     infoCol("GATEWAY", "/main/" + String(bot.botID.prefix(6)) + "…", tint: p.orange)
                 }
                 .padding(.vertical, 10)
@@ -191,19 +226,10 @@ struct BotsView: View {
                     actionBtn("停止", "stop", p.text) { await act(bot, .stop) }
                     actionBtn("重启", "arrow.clockwise", p.text) { await act(bot, .restart) }
                     Spacer()
-                    if selectedID != bot.botID {
-                        Button { Task { await select(bot) } } label: {
-                            Image(systemName: "arrow.right.circle").font(.system(size: 16)).foregroundStyle(p.textSecondary)
-                        }.buttonStyle(.plain)
-                    }
                 }
             }
         }
         .opacity(busyID == bot.botID ? 0.6 : 1)
-    }
-
-    private var rectDivider: some View {
-        Rectangle().fill(p.separator).frame(width: 1, height: 30)
     }
 
     private func infoCol(_ label: String, _ value: String, tint: Color? = nil) -> some View {
@@ -230,6 +256,8 @@ struct BotsView: View {
         .disabled(busyID != nil)
     }
 
+    // MARK: - Actions
+
     private func load() async {
         do {
             let mode = try await client.hostMode()
@@ -237,9 +265,8 @@ struct BotsView: View {
             bots = try await client.bots()
             updatedAt = Date()
             error = nil
-        } catch APIError.unauthorized {
-            await auth.signOut(client: client)
-        } catch { self.error = error.localizedDescription }
+        } catch APIError.unauthorized { await auth.signOut(client: client) }
+        catch { self.error = error.localizedDescription }
     }
 
     private func act(_ bot: Bot, _ action: BotAction) async {
@@ -255,6 +282,38 @@ struct BotsView: View {
 
     private func select(_ bot: Bot) async {
         do { try await client.selectBot(bot.botID); selectedID = bot.botID }
+        catch { self.error = error.localizedDescription }
+    }
+
+    private func create() async {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        busyID = "create"
+        defer { busyID = nil }
+        do { try await client.createBot(name: name); newName = ""; await load() }
+        catch APIError.unauthorized { await auth.signOut(client: client) }
+        catch { self.error = error.localizedDescription }
+    }
+
+    private func rename(_ bot: Bot) async {
+        let name = textDraft.trimmingCharacters(in: .whitespaces)
+        renaming = nil
+        guard !name.isEmpty else { return }
+        do { try await client.renameBot(bot.botID, name: name); await load() }
+        catch { self.error = error.localizedDescription }
+    }
+
+    private func clone(_ bot: Bot) async {
+        let name = textDraft.trimmingCharacters(in: .whitespaces)
+        cloning = nil
+        guard !name.isEmpty else { return }
+        do { try await client.cloneBot(bot.botID, name: name); await load() }
+        catch { self.error = error.localizedDescription }
+    }
+
+    private func remove(_ bot: Bot) async {
+        deleting = nil
+        do { try await client.deleteBot(bot.botID); await load() }
         catch { self.error = error.localizedDescription }
     }
 }

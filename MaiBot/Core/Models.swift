@@ -100,11 +100,36 @@ struct Dashboard: Codable {
     let summary: Summary
     let modelStats: [ModelStat]
     let hourlyData: [HourPoint]
+    let recentActivity: [ActivityItem]?
 
     enum CodingKeys: String, CodingKey {
         case summary
         case modelStats = "model_stats"
         case hourlyData = "hourly_data"
+        case recentActivity = "recent_activity"
+    }
+
+    struct ActivityItem: Codable, Identifiable {
+        let timestamp: String
+        let model: String?
+        let requestType: String?
+        let tokens: Double?
+        let cost: Double?
+        let timeCost: Double?
+        var id: String { timestamp + "|" + (model ?? "") + "|" + (requestType ?? "") }
+
+        enum CodingKeys: String, CodingKey {
+            case timestamp, model, tokens, cost
+            case requestType = "request_type"
+            case timeCost = "time_cost"
+        }
+
+        var clock: String {
+            guard timestamp.count >= 19 else { return timestamp }
+            let i = timestamp.index(timestamp.startIndex, offsetBy: 11)
+            let j = timestamp.index(i, offsetBy: 5)
+            return String(timestamp[i..<j])
+        }
     }
 
     struct Summary: Codable {
@@ -237,4 +262,32 @@ enum ISO8601 {
         let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]; return f
     }()
     static func date(from s: String) -> Date? { a.date(from: s) ?? b.date(from: s) }
+}
+// MARK: - Model config
+
+struct ModelConfigResponse: Codable {
+    let config: ModelConfig
+}
+
+struct ModelConfig: Codable {
+    let models: [ModelInfo]?
+
+    struct ModelInfo: Codable, Identifiable {
+        let modelIdentifier: String
+        let name: String?
+        let apiProvider: String?
+        let modelType: String?
+        let visual: Bool?
+
+        var id: String { modelIdentifier + "|" + (apiProvider ?? "") }
+        var displayName: String { name ?? modelIdentifier }
+
+        enum CodingKeys: String, CodingKey {
+            case modelIdentifier = "model_identifier"
+            case name
+            case apiProvider = "api_provider"
+            case modelType = "model_type"
+            case visual
+        }
+    }
 }

@@ -89,9 +89,9 @@ final class APIClient {
     }
 
     @discardableResult
-    private func post(_ path: String, json: [String: Any] = [:]) async throws -> Data {
-        let body = try JSONSerialization.data(withJSONObject: json)
-        let req = try makeRequest(path, method: "POST", body: body)
+    private func sendJSON(_ method: String, _ path: String, _ json: [String: Any]?) async throws -> Data {
+        let body = json.map { try? JSONSerialization.data(withJSONObject: $0) } ?? nil
+        let req = try makeRequest(path, method: method, body: body)
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
         if http.statusCode == 401 { throw APIError.unauthorized }
@@ -101,6 +101,11 @@ final class APIClient {
             throw APIError.http(http.statusCode, msg)
         }
         return data
+    }
+
+    @discardableResult
+    private func post(_ path: String, json: [String: Any] = [:]) async throws -> Data {
+        try await sendJSON("POST", path, json)
     }
 
     // MARK: - Host endpoints
@@ -126,6 +131,22 @@ final class APIClient {
         try await post("/api/host/selection", json: ["bot_id": botID])
     }
 
+    func createBot(name: String) async throws {
+        try await post("/api/host/bots", json: ["name": name])
+    }
+
+    func cloneBot(_ botID: String, name: String) async throws {
+        try await post("/api/host/bots/\(botID)/clone", json: ["name": name])
+    }
+
+    func renameBot(_ botID: String, name: String) async throws {
+        try await sendJSON("PATCH", "/api/host/bots/\(botID)", ["name": name])
+    }
+
+    func deleteBot(_ botID: String) async throws {
+        try await sendJSON("DELETE", "/api/host/bots/\(botID)", nil)
+    }
+
     // MARK: - Per-bot proxy (the panel itself lives behind /proxy)
 
     private func proxy(_ botID: String, _ sub: String) -> String {
@@ -143,6 +164,11 @@ final class APIClient {
     func news(botID: String) async throws -> [NewsResponse.NewsItem] {
         let r: NewsResponse = try await get(proxy(botID, "news"))
         return r.items
+    }
+
+    func models(botID: String) async throws -> [ModelConfig.ModelInfo] {
+        let r: ModelConfigResponse = try await get(proxy(botID, "config/model"))
+        return r.config.models ?? []
     }
 
     func logout() async throws { try await post("/api/webui/auth/logout") }

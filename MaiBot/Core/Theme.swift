@@ -95,31 +95,29 @@ struct DotTag: View {
     }
 }
 
-/// Circular icon cell from the quick-action grid.
+/// Circular icon cell from the quick-action grid. Pure visual; the caller
+/// wraps it in a NavigationLink or Button so taps always do something.
 struct GridTile: View {
     @Environment(\.palette) private var p
     let icon: String
     let label: String
-    var action: () -> Void = {}
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 10) {
-                ZStack {
-                    Circle().fill(p.iconCircle).frame(width: 56, height: 56)
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundStyle(p.text)
-                }
-                Text(label)
-                    .font(.system(size: 13))
+        VStack(spacing: 10) {
+            ZStack {
+                Circle().fill(p.iconCircle).frame(width: 56, height: 56)
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .regular))
                     .foregroundStyle(p.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity)
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(p.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .contentShape(.rect)
     }
 }
 

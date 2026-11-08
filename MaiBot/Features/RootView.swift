@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @Environment(AuthStore.self) private var auth
@@ -26,18 +27,41 @@ struct RootView: View {
 }
 
 enum AppTab: Hashable { case home, chat, manage }
+enum HomeRoute: Hashable { case activity, models, settings }
+enum ManageRoute: Hashable { case settings }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
     @State private var tab: AppTab = .home
+    @State private var homePath = NavigationPath()
+    @State private var managePath = NavigationPath()
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
-                case .home:   DashboardView()
-                case .chat:   ChatView()
-                case .manage: ManageView()
+                case .home:
+                    NavigationStack(path: $homePath) {
+                        DashboardView(onOpenChat: { withAnimation { tab = .chat } })
+                            .navigationDestination(for: HomeRoute.self) { route in
+                                switch route {
+                                case .activity: ActivityView()
+                                case .models:   ModelListView()
+                                case .settings: SettingsView()
+                                }
+                            }
+                    }
+                case .chat:
+                    ChatView()
+                case .manage:
+                    NavigationStack(path: $managePath) {
+                        BotsView()
+                            .navigationDestination(for: ManageRoute.self) { route in
+                                switch route {
+                                case .settings: SettingsView()
+                                }
+                            }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -56,18 +80,20 @@ struct MainShell: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 8)
-            .background(.white, in: .capsule)
-            .shadow(color: .black.opacity(0.12), radius: 14, y: 4)
+            .glassEffect(.regular, in: .capsule)
+            .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
 
-            Button {} label: {
+            Button {
+                withAnimation { tab = .home; homePath = NavigationPath() }
+            } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(p.text)
                     .frame(width: 56, height: 56)
-                    .background(.white, in: .circle)
-                    .shadow(color: .black.opacity(0.12), radius: 14, y: 4)
             }
             .buttonStyle(.plain)
+            .glassEffect(.regular, in: .circle)
+            .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -93,23 +119,6 @@ struct MainShell: View {
     }
 }
 
-// MARK: - Manage
-
-struct ManageView: View {
-    var body: some View {
-        NavigationStack {
-            BotsView()
-                .navigationDestination(for: ManageRoute.self) { route in
-                    switch route {
-                    case .settings: SettingsView()
-                    }
-                }
-        }
-    }
-}
-
-enum ManageRoute: Hashable { case settings }
-
 // MARK: - Chat
 
 struct ChatView: View {
@@ -126,28 +135,30 @@ struct ChatView: View {
             .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
 
             Spacer()
-            VStack(spacing: 14) {
+            VStack(spacing: 16) {
                 Image(systemName: "bubble.left.and.bubble.right")
                     .font(.system(size: 44, weight: .light)).foregroundStyle(p.textTertiary)
-                Text("暂无会话").font(.system(size: 17, weight: .semibold)).foregroundStyle(p.text)
-                Text("麦麦的聊天需要接入实例消息通道，\n当前版本尚未开放。").font(.system(size: 14))
+                Text("会话需在完整面板中打开").font(.system(size: 17, weight: .semibold)).foregroundStyle(p.text)
+                Text("实时聊天依赖实例的消息通道（WebSocket），\n原生端尚未接入。").font(.system(size: 14))
                     .multilineTextAlignment(.center).foregroundStyle(p.textSecondary)
+                Button {
+                    var s = client.baseURL.absoluteString
+                    if s.hasSuffix("/") { s.removeLast() }
+                    if let u = URL(string: s + "/chat") { UIApplication.shared.open(u) }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "safari").font(.system(size: 14))
+                        Text("在浏览器中打开聊天").font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 11)
+                    .background(p.orange, in: .capsule)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
             Spacer()
-
-            HStack(spacing: 10) {
-                TextField("发送消息…", text: $draft)
-                    .font(.system(size: 15))
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(p.card, in: .capsule)
-                    .overlay { Capsule().strokeBorder(p.separator) }
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 16)).foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(p.orange, in: .circle)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 84)
+            Spacer().frame(height: 80)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)

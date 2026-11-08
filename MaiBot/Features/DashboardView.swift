@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State private var news: [NewsResponse.NewsItem] = []
     @State private var error: String?
     @State private var range: Int = 24
+    var onOpenChat: () -> Void = {}
 
     private var hourLabel: String {
         let f = DateFormatter()
@@ -67,10 +68,13 @@ struct DashboardView: View {
                         .foregroundStyle(p.text)
                 }
                 Spacer()
-                Image(systemName: "gearshape")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(p.text)
-                    .padding(.top, 10)
+                NavigationLink(value: HomeRoute.settings) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(p.text)
+                        .padding(.top, 10)
+                }
+                .buttonStyle(.plain)
             }
             HStack(spacing: 14) {
                 Text("MAIBOT V1.4.0").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(p.text)
@@ -112,12 +116,18 @@ struct DashboardView: View {
     private var gridCard: some View {
         Panel(padding: 18) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
-                GridTile(icon: "doc.text", label: "查看日志")
-                GridTile(icon: "gearshape", label: "外观设置")
-                GridTile(icon: "cpu", label: "模型列表")
-                GridTile(icon: "bubble.left", label: "麦麦聊聊")
-                GridTile(icon: "doc.on.doc", label: "回复日志")
-                GridTile(icon: "doc.text.magnifyingglass", label: "推理日志")
+                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.text", label: "查看日志") }
+                    .buttonStyle(.plain)
+                NavigationLink(value: HomeRoute.settings) { GridTile(icon: "gearshape", label: "外观设置") }
+                    .buttonStyle(.plain)
+                NavigationLink(value: HomeRoute.models) { GridTile(icon: "cpu", label: "模型列表") }
+                    .buttonStyle(.plain)
+                Button { onOpenChat() } label: { GridTile(icon: "bubble.left", label: "麦麦聊聊") }
+                    .buttonStyle(.plain)
+                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.on.doc", label: "回复日志") }
+                    .buttonStyle(.plain)
+                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.text.magnifyingglass", label: "推理日志") }
+                    .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
         }
