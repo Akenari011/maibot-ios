@@ -235,9 +235,16 @@ struct ThemedRoot: View {
     private var effective: String { TestSupport.forcedTheme ?? mode }
     private var isDark: Bool { effective == "dark" || (effective == "system" && systemScheme == .dark) }
     var body: some View {
-        RootView()
-            .environment(\.palette, isDark ? .dark : .panel)
-            .tint(Color(hexString: accentHex) ?? (isDark ? Palette.dark.orange : Palette.panel.orange))
+        let base = isDark ? Palette.dark : Palette.panel
+        let accent = Color(hexString: accentHex) ?? base.orange
+        let pal = Palette(bg: base.bg, card: base.card, text: base.text,
+                          textSecondary: base.textSecondary, textTertiary: base.textTertiary,
+                          separator: base.separator, green: base.green, orange: accent,
+                          iconCircle: base.iconCircle, progressTrack: base.progressTrack,
+                          progressFill: accent)
+        return RootView()
+            .environment(\.palette, pal)
+            .tint(accent)
             .preferredColorScheme(effective == "system" ? nil : (effective == "dark" ? .dark : .light))
     }
 }
