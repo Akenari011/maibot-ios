@@ -169,6 +169,7 @@ struct MainShell: View {
 struct ChatView: View {
     @Environment(APIClient.self) private var client
     @Environment(\.palette) private var p
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var chat: ChatClient?
     @State private var draft = ""
@@ -277,7 +278,7 @@ struct ChatView: View {
                 .padding(.horizontal, 16).padding(.vertical, 12)
             }
             .onChange(of: chat.messages.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("end", anchor: .bottom) }
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { proxy.scrollTo("end", anchor: .bottom) }
             }
             .onChange(of: chat.messages.last?.text ?? "") { _, _ in
                 proxy.scrollTo("end", anchor: .bottom)
