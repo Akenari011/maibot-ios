@@ -241,7 +241,8 @@ struct ChatView: View {
                         }
                         .padding(.top, 80)
                     }
-                    ForEach(Array(chat.messages.enumerated()), id: \.element.id) { idx, m in
+                    ForEach(chat.messages.indices, id: \.self) { idx in
+                        let m = chat.messages[idx]
                         bubble(m, showMeta: idx == 0 || chat.messages[idx - 1].role != m.role)
                     }
                     if chat.waiting {
