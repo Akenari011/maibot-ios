@@ -227,6 +227,9 @@ final class ChatClient {
         if let s = d["sender"] as? [String: Any], let n = s["name"] as? String, !n.isEmpty { return n }
         return fallback
     }
+    private func nowClock() -> String {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: Date())
+    }
     private func shortTime(_ d: [String: Any]) -> String {
         if let ts = d["timestamp"] as? Double, ts > 0 {
             let f = DateFormatter(); f.dateFormat = "HH:mm"
@@ -257,7 +260,7 @@ final class ChatClient {
     func send(_ text: String) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
-        messages.append(ChatMessage(role: .user, text: t))
+        messages.append(ChatMessage(role: .user, text: t, sender: "我", time: nowClock()))
         waiting = true
         sendRaw(["op": "call", "id": nextID(), "domain": "chat", "method": "message.send",
                  "session": sessionID, "data": ["content": t, "user_name": "我"]])
