@@ -27,7 +27,9 @@ final class AuthStore {
     private(set) var state: AuthState = .unknown
     private(set) var lastError: String?
 
-    /// Cookie name prefix is per-instance ("maibot_host_session_<hash>").
+    /// Gateway session cookie — its presence means SSO succeeded.
+    static let gatewayCookie = "gm-sso"
+    /// Panel session, per instance ("maibot_host_session_<hash>").
     static let cookiePrefix = "maibot_host_session_"
 
     private let keychainAccount = "maibot.session.cookie"
@@ -58,23 +60,34 @@ final class AuthStore {
 
     // MARK: - Harvest from the web view
 
-    /// Called after every navigation in the login web view. Pulls matching
-    /// cookies out of the shared store and, if one validates, signs us in.
+    /// Called after every navigation in the login web view.
+    ///
+    /// The gateway's own session is the "gm-sso" cookie. The panel's session
+    /// (maibot_host_session_*) only appears on an API response, never on the
+    /// login page itself — waiting for it would leave us stuck on the web view
+    /// forever. So: require gm-sso, and forward any panel cookie we happen to
+    /// have alongside it.
     func capture(store: WKWebsiteDataStore, client: APIClient) async {
         let cookies = await store.httpCookieStore.allCookies()
-        guard let hit = cookies.first(where: { $0.name.hasPrefix(Self.cookiePrefix) }) else {
-            return
+        let relevant = cookies.filter {
+            $0.name == Self.gatewayCookie || $0.name.hasPrefix(Self.cookiePrefix)
         }
-        let value = "\(hit.name)=\(hit.value)"
+        guard relevant.contains(where: { $0.name == Self.gatewayCookie }) else { return }
+
+        let value = relevant.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
         client.sessionCookie = value
         do {
             if try await client.checkAuth() {
                 Keychain.write(value, service: service, account: keychainAccount)
                 state = .loggedIn
                 lastError = nil
+            } else {
+                // gm-sso present but gateway still rejects — usually a stale
+                // cookie from before the session expired.
+                state = .loggedOut
             }
         } catch {
-            // Not authenticated yet (still on the SSO screen). Stay quiet.
+            // Still on the SSO screen. Stay quiet and wait for the next hop.
         }
     }
 
