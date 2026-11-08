@@ -127,6 +127,8 @@ struct PlaceholderPage: View {
             Image(systemName: "hammer").font(.system(size: 34, weight: .light)).foregroundStyle(p.textTertiary)
             Text(title).font(.system(size: 18, weight: .semibold)).foregroundStyle(p.text)
             Text("该页面正在按网页版重构中").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+            Text("部分子页在网页版依赖额外登录态或运行参数（如插件市场、推理过程、适配器设置），iOS 暂以占位保留，可先用网页版操作。")
+                .font(.system(size: 11)).foregroundStyle(p.textTertiary).multilineTextAlignment(.center).padding(.horizontal, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
