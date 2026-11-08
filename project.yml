@@ -24,11 +24,13 @@ targets:
       - path: MaiBot
         excludes:
           - "Info.plist"
+          - "MaiBot.entitlements"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: online.galmaster.maibot
         PRODUCT_NAME: MaiBot
         INFOPLIST_FILE: MaiBot/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MaiBot/MaiBot.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO

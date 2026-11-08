@@ -22,6 +22,22 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+
+    <!-- App-Bound Domains. This is what makes WebAuthn work inside WKWebView.
+         Without it the hardware-key / passkey prompt never appears.
+         Max 10 entries. Every host the login flow can reach must be listed,
+         otherwise the navigation is blocked. -->
+    <key>WKAppBoundDomains</key>
+    <array>
+        <string>maibot.galmaster.online</string>
+        <string>auth.galmaster.us</string>
+        <string>galmaster.us</string>
+        <string>galmaster.online</string>
+        <string>akenari.cloudflareaccess.com</string>
+        <string>github.com</string>
+        <string>api.github.com</string>
+    </array>
+
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

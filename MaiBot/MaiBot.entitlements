@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Required for passkeys (iCloud Keychain) on galmaster.us, which is the
+         WebAuthn RP ID used by the panel. A plain FIDO2 USB/NFC key only needs
+         WKAppBoundDomains; this line additionally enables platform passkeys.
+         Note: Associated Domains requires a paid developer account to sign. -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>webcredentials:galmaster.us</string>
+        <string>webcredentials:galmaster.online</string>
+    </array>
+</dict>
+</plist>
