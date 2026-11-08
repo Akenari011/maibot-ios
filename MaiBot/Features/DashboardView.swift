@@ -400,7 +400,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
                     Label("资讯", systemImage: "newspaper").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
-                    Text("\(news.count)条未读").font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
+                    Text("\(news.count) 条").font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
                         .padding(.horizontal, 7).padding(.vertical, 2).background(p.text, in: .capsule)
                     Spacer()
                     NavigationLink(value: HomeRoute.news) {
