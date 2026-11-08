@@ -55,6 +55,7 @@ struct DashboardView: View {
         .background(p.bg)
         .refreshable { await load() }
         .task { await load() }
+        .onChange(of: range) { _, _ in Task { await load() } }
     }
 
     // MARK: header
