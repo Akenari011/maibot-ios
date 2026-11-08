@@ -73,7 +73,13 @@ jobs:
           GM_COOKIE: ${{ secrets.GM_TEST_COOKIE }}
         run: |
           set -euo pipefail
-          DEV=$(xcrun simctl list devices available | grep -m1 -oE "iPhone[^(]*\([0-9A-F-]{36}\)" | grep -oE "[0-9A-F-]{36}")
+          RUNTIME=$(xcrun simctl list runtimes | grep -oE "com\.apple\.CoreSimulator\.SimRuntime\.iOS-2[6-9][0-9-]*" | tail -1)
+          echo "runtime: $RUNTIME"
+          xcrun simctl list runtimes | head -20
+          if [ -z "$RUNTIME" ]; then echo "NO iOS 26 RUNTIME"; exit 1; fi
+          DEVTYPE=$(xcrun simctl list devicetypes | grep -oE "com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-1[0-9]" | tail -1)
+          echo "devicetype: $DEVTYPE"
+          DEV=$(xcrun simctl create "MaiBotTest" "$DEVTYPE" "$RUNTIME")
           echo "device: $DEV"
           xcrun simctl boot "$DEV" || true
           xcrun simctl bootstatus "$DEV" -b || true
