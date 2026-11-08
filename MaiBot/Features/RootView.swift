@@ -70,7 +70,8 @@ struct MainShell: View {
                             }
                     }
                 case .chat:
-                    NavigationStack { ChatListView() }
+                    if TestSupport.startTab == "room" { ChatView() }
+                    else { NavigationStack { ChatListView() } }
                 case .manage:
                     NavigationStack(path: $managePath) {
                         ManagementIndexView()
@@ -170,6 +171,8 @@ struct ChatView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
+        .navigationTitle("聊天")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             if chat == nil {
                 let c = ChatClient(client: client)
@@ -185,7 +188,6 @@ struct ChatView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("聊天").font(.system(size: 20, weight: .bold)).foregroundStyle(p.text)
             if let chat {
                 switch chat.status {
                 case .ready:
