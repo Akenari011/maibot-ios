@@ -33,6 +33,7 @@ final class ChatClient {
     var status: Status = .idle
     var messages: [ChatMessage] = []
     var waiting = false
+    var peerName = "麦麦"
     private(set) var debug = ""
 
     private var task: URLSessionWebSocketTask?
@@ -175,6 +176,10 @@ final class ChatClient {
         let type = (data["type"] as? String) ?? (obj["event"] as? String) ?? ""
 
         switch type {
+        case "session_info":
+            if let n = (data["bot_name"] as? String) ?? ((data["bot"] as? [String: Any])?["name"] as? String), !n.isEmpty {
+                peerName = n
+            }
         case "bot_message":
             let t = richText(data)
             if !t.isEmpty { messages.append(ChatMessage(role: .bot, text: t, sender: senderName(data, fallback: "麦麦"), time: shortTime(data))) }

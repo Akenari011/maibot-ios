@@ -253,7 +253,7 @@ struct ChatView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "bubble.left.and.bubble.right")
                                 .font(.system(size: 40, weight: .light)).foregroundStyle(p.textTertiary)
-                            Text("和麦麦说点什么").font(.system(size: 15)).foregroundStyle(p.textSecondary)
+                            Text("和" + chat.peerName + "说点什么").font(.system(size: 15)).foregroundStyle(p.textSecondary)
                         }
                         .padding(.top, 80)
                     }
