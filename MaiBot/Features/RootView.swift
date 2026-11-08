@@ -206,7 +206,18 @@ struct ChatView: View {
                     .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
             }
         }
-        .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay { Capsule().strokeBorder(Color.white.opacity(0.5), lineWidth: 0.5) }
+        .padding(.horizontal, 16).padding(.top, 6).padding(.bottom, 10)
+    }
+
+    private func avatar(bot: Bool) -> some View {
+        ZStack {
+            Circle().fill(bot ? p.orange : p.iconCircle).frame(width: 32, height: 32)
+            Image(systemName: bot ? "sparkles" : "person.fill")
+                .font(.system(size: 15)).foregroundStyle(bot ? .white : p.textSecondary)
+        }
     }
 
     private func statusDot(_ t: String, _ c: Color) -> some View {
@@ -266,8 +277,9 @@ struct ChatView: View {
                 Spacer()
             }
         } else {
-            HStack {
-                if m.role == .user { Spacer(minLength: 48) }
+            HStack(alignment: .bottom, spacing: 8) {
+                if m.role == .user { Spacer(minLength: 40) }
+                if m.role == .bot { avatar(bot: true) }
                 Text(m.text)
                     .font(.system(size: 15))
                     .foregroundStyle(m.role == .user ? .white : p.text)
@@ -275,8 +287,9 @@ struct ChatView: View {
                     .background(m.role == .user ? p.orange : p.iconCircle,
                                 in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .textSelection(.enabled)
-                    .frame(maxWidth: 290, alignment: m.role == .user ? .trailing : .leading)
-                if m.role == .bot { Spacer(minLength: 48) }
+                    .frame(maxWidth: 280, alignment: m.role == .user ? .trailing : .leading)
+                if m.role == .user { avatar(bot: false) }
+                if m.role == .bot { Spacer(minLength: 40) }
             }
         }
     }
@@ -287,8 +300,7 @@ struct ChatView: View {
                 .lineLimit(1...4)
                 .font(.system(size: 15))
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(p.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(p.separator) }
+                .background(p.iconCircle, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             Button {
                 let t = draft; draft = ""; chat.send(t)
             } label: {
