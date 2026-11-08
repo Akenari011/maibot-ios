@@ -90,7 +90,7 @@ struct LogsView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $filterOpen) { filterSheet }
         .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) {
-            if let url = exportURL { ActivityView(items: [url]) }
+            if let url = exportURL { LogsShareSheet(items: [url]) }
         }
         .task {
             if logs == nil {
@@ -330,7 +330,7 @@ struct LogsView: View {
     }
 }
 
-private struct ActivityView: UIViewControllerRepresentable {
+private struct LogsShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
