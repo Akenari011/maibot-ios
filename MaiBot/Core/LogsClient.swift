@@ -2,11 +2,15 @@
 //  LogsClient.swift
 //  MaiBot
 //
-//  Real-time logs over the same unified panel websocket (/api/webui/ws).
-//  The browser panel does NOT use a separate /ws/logs endpoint for the log
-//  page; it subscribes on the unified socket:
-//    -> {"op":"subscribe","id","domain":"logs","topic":"main","data":{"replay":100}}
-//    <- {"op":"response","ok":true,"data":{"domain":"logs","topic":"main"}}
+//  Real-time logs over the bot's unified websocket. The public host does not
+//  serve /api/webui/ws directly (403 even with a host session); the working
+//  endpoint on the host origin is the bot proxy path. We therefore probe, in
+//  order, the proxy path (needs panel session cookie — present on real device
+//  after WebView login) and the plain path, and keep whichever acknowledges the
+//  logs subscription within a short timeout.
+//
+//    -> {"op":"subscribe","id","domain":"logs","topic":"main","data":{"replay":200}}
+//    <- {"op":"response","ok":true,...}
 //    <- {"op":"event","domain":"logs","event":"snapshot","data":{"entries":[...]}}
 //    <- {"op":"event","domain":"logs","event":"entry","data":{"entry":{...}}}
 //
@@ -24,7 +28,6 @@ struct LogEntry: Identifiable, Decodable, Equatable {
     var moduleBold: Bool?
     var moduleDisplayName: String?
 
-    /// "HH:MM:SS" pulled out of the panel timestamp.
     var clock: String {
         if let last = timestamp.split(separator: " ").last, last.count >= 8 {
             return String(last.prefix(8))
@@ -36,10 +39,7 @@ struct LogEntry: Identifiable, Decodable, Equatable {
 @MainActor
 @Observable
 final class LogsClient {
-    enum Status: Equatable {
-        case idle, connecting, ready
-        case failed(String)
-    }
+    enum Status: Equatable { case idle, connecting, ready; case failed(String) }
 
     var status: Status = .idle
     var entries: [LogEntry] = []
@@ -50,17 +50,26 @@ final class LogsClient {
     private var rpc = 0
     private let client: APIClient
     private var ping: Task<Void, Never>?
-    private let decoder = JSONDecoder()
+    private var listenTask: Task<Void, Never>?
     private var botID: String?
 
     init(client: APIClient) { self.client = client }
 
-    private func wsURL() -> URL? {
+    private func url(for path: String) -> URL? {
         guard var comp = URLComponents(url: client.baseURL, resolvingAgainstBaseURL: false) else { return nil }
         comp.scheme = (client.baseURL.scheme == "https") ? "wss" : "ws"
-        comp.path = "/api/webui/ws"
+        comp.path = path
         comp.query = nil
         return comp.url
+    }
+
+    private func candidatePaths() -> [String] {
+        var paths: [String] = []
+        if let id = botID, !id.isEmpty {
+            paths.append("/api/host/bots/\(id)/proxy/api/webui/ws")
+        }
+        paths.append("/api/webui/ws")
+        return paths
     }
 
     func connect() async {
@@ -69,53 +78,81 @@ final class LogsClient {
         status = .connecting
         let mode = try? await client.hostMode()
         botID = mode?.selectedBotID
-        guard let url = wsURL() else { status = .failed("无效地址"); return }
 
-        var req = URLRequest(url: url)
-        var cookies: [String] = []
-        if let s = client.sessionCookie, !s.isEmpty { cookies.append(s) }
-        if let pc = client.panelCookie, !pc.isEmpty { cookies.append(pc) }
-        if !cookies.isEmpty { req.setValue(cookies.joined(separator: "; "), forHTTPHeaderField: "Cookie") }
+        for path in candidatePaths() {
+            guard let u = url(for: path) else { continue }
+            var req = URLRequest(url: u)
+            var cookies: [String] = []
+            if let s = client.sessionCookie, !s.isEmpty { cookies.append(s) }
+            if let pc = client.panelCookie, !pc.isEmpty { cookies.append(pc) }
+            if !cookies.isEmpty { req.setValue(cookies.joined(separator: "; "), forHTTPHeaderField: "Cookie") }
 
-        let t = URLSession.shared.webSocketTask(with: req)
-        task = t
-        t.resume()
-        status = .ready
-        sendRaw(["op": "subscribe", "id": nextID(), "domain": "logs", "topic": "main",
-                 "data": ["replay": 200]])
-        listen()
-        startPing()
+            let t = URLSession.shared.webSocketTask(with: req)
+            t.resume()
+            sendRaw(t, ["op": "subscribe", "id": nextID(), "domain": "logs", "topic": "main",
+                        "data": ["replay": 200]])
+
+            // Probe: wait up to 3s for the first frame (ack or snapshot).
+            if let first = await firstMessage(t, timeout: 3.0) {
+                task = t
+                status = .ready
+                debug = "通道 " + (path.contains("/proxy/") ? "代理" : "顶层")
+                handle(first)
+                startListen(t)
+                startPing(t)
+                return
+            }
+            t.cancel(with: .goingAway, reason: nil)
+        }
+        status = .failed("无法订阅日志（缺少面板会话）")
+        debug = "两条通道均无响应"
+    }
+
+    private func firstMessage(_ t: URLSessionWebSocketTask, timeout: Double) async -> URLSessionWebSocketTask.Message? {
+        await withTaskGroup(of: URLSessionWebSocketTask.Message?.self) { group in
+            group.addTask {
+                do { return try await t.receive() } catch { return nil }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(timeout))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
     }
 
     private func nextID() -> String { rpc += 1; return "l\(rpc)" }
 
-    private func sendRaw(_ obj: [String: Any]) {
+    private func sendRaw(_ t: URLSessionWebSocketTask, _ obj: [String: Any]) {
         guard let d = try? JSONSerialization.data(withJSONObject: obj),
               let s = String(data: d, encoding: .utf8) else { return }
-        task?.send(.string(s)) { _ in }
+        t.send(.string(s)) { _ in }
     }
 
-    private func startPing() {
-        ping?.cancel()
-        ping = Task { [weak self] in
+    private func startListen(_ t: URLSessionWebSocketTask) {
+        listenTask?.cancel()
+        listenTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(25))
-                self?.sendRaw(["op": "ping"])
+                do {
+                    let msg = try await t.receive()
+                    await MainActor.run { self?.handle(msg) }
+                } catch {
+                    await MainActor.run { self?.status = .failed("连接中断") }
+                    break
+                }
             }
         }
     }
 
-    private func listen() {
-        task?.receive { [weak self] result in
-            guard let self else { return }
-            Task { @MainActor in
-                switch result {
-                case .success(let msg):
-                    self.handle(msg)
-                    self.listen()
-                case .failure(let e):
-                    self.status = .failed(e.localizedDescription)
-                }
+    private func startPing(_ t: URLSessionWebSocketTask) {
+        ping?.cancel()
+        ping = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(25))
+                guard let self else { return }
+                await MainActor.run { self.sendRaw(t, ["op": "ping"]) }
             }
         }
     }
@@ -131,12 +168,15 @@ final class LogsClient {
               let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return }
 
         let op = obj["op"] as? String ?? ""
+        if op == "pong" { return }
         if op == "response" {
             let ok = (obj["ok"] as? Bool) ?? false
-            debug = ok ? "订阅已确认" : "订阅失败"
             if !ok {
                 let err = obj["error"] as? [String: Any]
                 status = .failed((err?["message"] as? String) ?? "日志订阅失败")
+                debug = "订阅失败"
+            } else if !debug.contains("快照") {
+                debug = "订阅已确认"
             }
             return
         }
@@ -148,11 +188,11 @@ final class LogsClient {
             guard let arr = data["entries"] as? [[String: Any]] else { debug = "快照无 entries"; return }
             let list = decode(arr)
             entries = list
-            debug = "快照 \(arr.count) 条/解析 \(list.count)"
+            debug = "快照 \(arr.count)/解析 \(list.count)"
         } else if event == "entry" {
             guard let e = data["entry"] as? [String: Any] else { return }
             append(decode([e]))
-            if entries.count == 1 { debug = "实时首条已到" }
+            if entries.count == 1 { debug = "实时首条" }
         }
     }
 
@@ -171,21 +211,15 @@ final class LogsClient {
     private func append(_ new: [LogEntry]) {
         guard !new.isEmpty else { return }
         var seen = Set(entries.map { $0.id })
-        for e in new where !seen.contains(e.id) {
-            entries.append(e)
-            seen.insert(e.id)
-        }
-        if entries.count > maxEntries {
-            entries.removeFirst(entries.count - maxEntries)
-        }
+        for e in new where !seen.contains(e.id) { entries.append(e); seen.insert(e.id) }
+        if entries.count > maxEntries { entries.removeFirst(entries.count - maxEntries) }
     }
 
     func clear() { entries.removeAll() }
 
     func disconnect() {
-        ping?.cancel()
+        ping?.cancel(); listenTask?.cancel()
         task?.cancel(with: .normalClosure, reason: nil)
-        task = nil
-        status = .idle
+        task = nil; status = .idle
     }
 }

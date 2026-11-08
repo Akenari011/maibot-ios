@@ -188,7 +188,7 @@ final class APIClient {
     }
 
     func chatStreams(botID: String) async throws -> [ChatStream] {
-        let r: ChatStreamList = try await get(proxy(botID, "chat/sessions?limit=1000"))
+        let r: ChatStreamList = try await get("/api/host/bots/\(botID)/proxy/api/chat/sessions?limit=1000")
         return r.sessions
     }
 

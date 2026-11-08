@@ -37,7 +37,7 @@ struct ChatListView: View {
                         ForEach(filtered) { s in
                             NavigationLink { ChatView() } label: {
                                 ChatRowView(icon: "person.2.fill", title: s.displayName,
-                                            subtitle: s.subtitle, time: "", online: false, avatarTint: p.textSecondary)
+                                            subtitle: s.subtitle, time: s.timeText, online: false, avatarTint: p.textSecondary)
                             }.buttonStyle(.plain)
                             if s.id != filtered.last?.id { rowDivider }
                         }

@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State private var news: [NewsResponse.NewsItem] = []
     @State private var error: String?
     @State private var range: Int = 24
+    @State private var statusFlipped = false
     var onOpenChat: () -> Void = {}
 
     private var hourLabel: String {
@@ -36,7 +37,7 @@ struct DashboardView: View {
                 if let error {
                     ErrorBanner(message: error) { Task { await load() } }
                 }
-                activityCard
+                botStatusCard
                 gridCard
                 if let cache { storageCard(cache) }
                 if let dash { statsCard(dash.summary) }
@@ -90,32 +91,74 @@ struct DashboardView: View {
 
     // MARK: activity
 
-    private var activityCard: some View {
+    private var botStatusCard: some View {
         Panel {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center, spacing: 10) {
-                    Text("活动").font(.system(size: 38, weight: .black)).foregroundStyle(p.text)
-                    Circle().fill(p.green).frame(width: 11, height: 11)
-                }
-                Text(bot?.uptimeText ?? "离线")
-                    .font(.system(size: 22))
-                    .foregroundStyle(p.textSecondary)
-                    .padding(.top, 2)
-                Divider().overlay(p.separator).padding(.vertical, 16)
-                HStack(spacing: 0) {
-                    DotTag(text: "启用视觉")
-                    Spacer()
-                    DotTag(text: "启用记忆")
-                    Spacer()
-                }
+            ZStack {
+                statusFront
+                    .opacity(statusFlipped ? 0 : 1)
+                statusBack
+                    .opacity(statusFlipped ? 1 : 0)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+            }
+            .rotation3DEffect(.degrees(statusFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+            .animation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.46), value: statusFlipped)
+            .contentShape(.rect)
+            .onTapGesture { statusFlipped.toggle() }
+        }
+    }
+
+    private var statusFront: some View {
+        let running = bot?.isRunning ?? false
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 10) {
+                Text(running ? "运行中" : "已停止")
+                    .font(.system(size: 34, weight: .semibold)).tracking(-0.6)
+                    .foregroundStyle(p.text)
+                if running { Circle().fill(p.green).frame(width: 8, height: 8) }
+            }
+            Text(bot?.uptimeText ?? "离线")
+                .font(.system(size: 15)).foregroundStyle(p.textSecondary).padding(.top, 2)
+            Divider().overlay(p.separator).padding(.vertical, 16)
+            HStack(spacing: 0) {
+                DotTag(text: "启用视觉")
+                Spacer()
+                DotTag(text: "启用记忆")
+                Spacer()
             }
         }
+    }
+
+    private var statusBack: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("最近在线").font(.system(size: 13, weight: .semibold)).foregroundStyle(p.textSecondary)
+            if let d = dash {
+                let pts = Array(d.hourlyData.suffix(24))
+                let maxV = max(1, pts.map { $0.requests }.max() ?? 1)
+                HStack(alignment: .bottom, spacing: 2) {
+                    ForEach(pts) { pt in
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(p.orange.opacity(0.68))
+                            .frame(height: max(2, CGFloat(pt.requests / maxV) * 44))
+                    }
+                }
+                .frame(height: 46)
+            } else {
+                Text("暂无数据").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: quick grid
 
     private var gridCard: some View {
         Panel(padding: 18) {
+          VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("快捷操作").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                Spacer()
+                Text("自定义").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+            }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
                 NavigationLink(value: HomeRoute.logs) { GridTile(icon: "doc.text", label: "查看日志") }
                     .buttonStyle(.plain)
@@ -131,6 +174,7 @@ struct DashboardView: View {
                     .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
+          }
         }
     }
 

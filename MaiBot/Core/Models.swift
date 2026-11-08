@@ -266,23 +266,41 @@ enum ISO8601 {
 // MARK: - Chat streams (chat tab list)
 
 struct ChatStream: Codable, Identifiable {
+    let id: Int
     let sessionID: String
     let displayName: String
     let chatType: String?
     let platform: String?
-    let lastActiveAt: String?
-    var id: String { sessionID }
+    let latestMessage: String?
+    let lastActiveAt: Double?
     enum CodingKeys: String, CodingKey {
+        case id
         case sessionID = "session_id"
         case displayName = "display_name"
         case chatType = "chat_type"
         case platform
+        case latestMessage = "latest_message"
         case lastActiveAt = "last_active_at"
     }
-    var subtitle: String { (chatType ?? "") == "group" ? "群聊" : "私聊" }
+    var subtitle: String {
+        if let m = latestMessage, !m.isEmpty { return m }
+        return (chatType ?? "") == "group" ? "群聊" : "私聊"
+    }
+    var timeText: String {
+        guard let t = lastActiveAt, t > 0 else { return "" }
+        let date = Date(timeIntervalSince1970: t)
+        let f = DateFormatter()
+        if Calendar.current.isDateInToday(date) { f.dateFormat = "HH:mm" }
+        else if Calendar.current.isDateInYesterday(date) { return "昨天" }
+        else { f.dateFormat = "M/d" }
+        return f.string(from: date)
+    }
 }
 
-struct ChatStreamList: Codable { let sessions: [ChatStream] }
+struct ChatStreamList: Codable {
+    let sessions: [ChatStream]
+    let total: Int?
+}
 
 // MARK: - Model config
 
