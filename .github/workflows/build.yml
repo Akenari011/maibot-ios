@@ -98,6 +98,12 @@ jobs:
               chat) SLEEP=12 ;;
               logs) SLEEP=10 ;;
               room) SLEEP=10 ;;
+              stats) SLEEP=12 ;;
+              config) SLEEP=12 ;;
+              plugins) SLEEP=12 ;;
+              memory) SLEEP=12 ;;
+              prompts) SLEEP=12 ;;
+              files) SLEEP=12 ;;
             esac
             if [ "$TAB" = "chat" ]; then
               SIMCTL_CHILD_GM_TEST_CHAT_TEXT="你好，简单介绍一下你自己" SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB=chat xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
