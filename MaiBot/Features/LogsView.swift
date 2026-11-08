@@ -166,7 +166,12 @@ struct LogsView: View {
                 .popover(isPresented: $sourcesOpen) { sourcesPanel }
 
                 Button { filterOpen = true } label: {
-                    pillLabel("筛选", trailing: levelFilter == .all ? "全部级别" : "\(LogLevels.short(levelFilter.rawValue))＋")
+                    HStack(spacing: 6) {
+                        pillLabel("筛选", trailing: levelFilter == .all ? "全部级别" : "\(LogLevels.short(levelFilter.rawValue))＋")
+                        if levelFilter != .all || dateFrom != nil || dateTo != nil {
+                            Circle().fill(p.orange).frame(width: 6, height: 6)
+                        }
+                    }
                 }.buttonStyle(.plain)
 
                 Spacer()
