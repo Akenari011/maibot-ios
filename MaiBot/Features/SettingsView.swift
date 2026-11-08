@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var botName = "—"
     @State private var botStatus = "—"
     @State private var storageText = "—"
+    @State private var botIDText = "—"
 
     @State private var editingHost = false
     @State private var hostDraft = ""
@@ -124,6 +125,20 @@ struct SettingsView: View {
                     Text(botStatus).font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 }
                 Spacer()
+            }
+            divider
+            row("机器人 ID") {
+                Text(botIDText).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary).lineLimit(1)
+                Spacer()
+                Button("复制") { UIPasteboard.general.string = botIDText; notice = "已复制机器人 ID" }
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(p.orange)
+            }
+            divider
+            row("网页版管理") {
+                Spacer()
+                if let u = URL(string: "/maim", relativeTo: client.baseURL) {
+                    Link("打开", destination: u).font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+                }
             }
         }
     }
@@ -234,6 +249,7 @@ struct SettingsView: View {
             if let list = try? await client.bots(), let b = list.first(where: { $0.botID == id }) {
                 botName = b.name; botStatus = b.statusLabel
             } else { botName = id }
+            botIDText = id
             if let c = try? await client.localCache(botID: id) {
                 let total = c.directories.reduce(0) { $0 + $1.totalSize } + c.database.totalSize
                 storageText = fmtSize(total)
