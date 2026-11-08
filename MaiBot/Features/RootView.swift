@@ -330,14 +330,17 @@ struct ChatView: View {
                 .padding(.horizontal, 16).padding(.vertical, 11)
                 .background(p.iconCircle, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             Button {
+                guard case .ready = chat.status else { return }
                 let t = draft; draft = ""; chat.send(t)
             } label: {
+                let ready = { if case .ready = chat.status { return true } else { return false } }()
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 16)).foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Color(hex: 0xB2B0AB) : p.orange, in: .circle)
+                    .background((draft.trimmingCharacters(in: .whitespaces).isEmpty || !ready) ? Color(hex: 0xB2B0AB) : p.orange, in: .circle)
             }
             .buttonStyle(.plain)
+            .disabled({ if case .ready = chat.status { return draft.trimmingCharacters(in: .whitespaces).isEmpty } else { return true } }())
             .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(.horizontal, 16)
