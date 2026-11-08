@@ -36,10 +36,10 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "资源管理", items: [
                 ManagementItem(icon: "book", title: "学习", route: .other("学习")),
-                ManagementItem(icon: "externaldrive", title: "长期记忆", route: .other("长期记忆")),
+                ManagementItem(icon: "externaldrive", title: "长期记忆", route: .memory),
             ]),
             ManagementGroup(title: "扩展集成", items: [
-                ManagementItem(icon: "puzzlepiece.extension", title: "插件配置", route: .other("插件配置")),
+                ManagementItem(icon: "puzzlepiece.extension", title: "插件配置", route: .plugins),
                 ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .other("插件市场")),
             ]),
             ManagementGroup(title: "高级工具", items: [

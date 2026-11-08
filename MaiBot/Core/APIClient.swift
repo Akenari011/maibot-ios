@@ -187,6 +187,21 @@ final class APIClient {
         return r.items
     }
 
+    func getRaw(_ path: String) async throws -> Any {
+        let req = try makeRequest(path)
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        capturePanel(http)
+        if http.statusCode == 401 { throw APIError.unauthorized }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
+    func pluginsInstalled(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/installed")) }
+    func memorySources(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/sources")) }
+
     func configBot(botID: String) async throws -> Any {
         let req = try makeRequest(proxy(botID, "config/bot"))
         let (data, resp) = try await session.data(for: req)
