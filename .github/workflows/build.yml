@@ -91,7 +91,7 @@ jobs:
           test -d "$APP" || { echo "app missing"; ls -R build/sim/Build/Products || true; exit 1; }
           xcrun simctl install "$DEV" "$APP"
           xcrun simctl status_bar "$DEV" override --time "9:41" --batteryLevel 100 --cellularBars 4 || true
-          for TAB in home manage chat logs settings bots room dark; do
+          for TAB in home manage chat logs settings bots room dark stats config plugins memory prompts files; do
             echo "=== $TAB ==="
             SLEEP=8
             case "$TAB" in

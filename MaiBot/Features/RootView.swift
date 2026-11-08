@@ -47,6 +47,12 @@ struct MainShell: View {
         case "logs":     start = .home; hp.append(HomeRoute.logs)
         case "settings": start = .home; hp.append(HomeRoute.settings)
         case "bots":     start = .manage; mp.append(ManageRoute.bots)
+        case "stats":    start = .manage; mp.append(ManageRoute.statistics)
+        case "config":   start = .manage; mp.append(ManageRoute.config)
+        case "plugins":  start = .manage; mp.append(ManageRoute.plugins)
+        case "memory":   start = .manage; mp.append(ManageRoute.memory)
+        case "prompts":  start = .manage; mp.append(ManageRoute.prompts)
+        case "files":    start = .manage; mp.append(ManageRoute.files)
         default:         start = .home
         }
         _tab = State(initialValue: start)
