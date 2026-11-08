@@ -41,6 +41,7 @@ final class ChatClient {
     private let client: APIClient
     private var ping: Task<Void, Never>?
     private var listenTask: Task<Void, Never>?
+    private var watchdog: Task<Void, Never>?
     private var botID: String?
 
     init(client: APIClient) { self.client = client }
@@ -64,6 +65,12 @@ final class ChatClient {
         if case .ready = status { return }
         if case .connecting = status { return }
         status = .connecting
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(12))
+            guard let self else { return }
+            await MainActor.run { if case .connecting = self.status { self.status = .failed("连接超时") } }
+        }
         let mode = try? await client.hostMode()
         botID = mode?.selectedBotID
 
@@ -82,6 +89,7 @@ final class ChatClient {
 
             if let first = await firstMessage(t, timeout: 3.0) {
                 task = t
+                watchdog?.cancel()
                 status = .ready
                 debug = (path.contains("/proxy/") ? "代理" : "顶层")
                 handle(first)
