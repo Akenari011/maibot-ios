@@ -18,7 +18,7 @@ MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Lbcheng1145/m
 | 设置页 | ✅ 6 Tab（通用/机器人/外观/安全/其他/关于）；安全页接 auth/update、auth/regenerate |
 | 机器人管理 | ✅ PageFrame(圆角8/2px)+DataPanel、3 秒轮询、详情折叠 |
 | 日志（实时） | ✅ 棕色终端 + 工具栏（搜索/来源/筛选/跟随/导出/清空/字号行距）；自适应 ws |
-| 子页面 | ✅ 模型列表/统计/麦麦设置(只读JSON)/插件(installed)/长期记忆(sources)/提示词(prompts)/文件(files)；插件市场·推理过程·适配器·学习受接口鉴权/参数限制暂占位 |
+| 子页面 | ✅ 模型列表/统计/麦麦设置(只读JSON)/插件(installed)/长期记忆(sources)/提示词(prompts)/文件(files)/资讯(news)；插件市场·推理过程·适配器·学习受接口鉴权/参数限制暂占位（提供"在网页版打开"深链） |
 | 登录 | WKWebView + App-Bound Domains + Safari UA |
 | 原生聊天 | ✅ 会话列表(真实 /api/chat/sessions) + 对话页(自适应 ws、头像/玻璃状态头/消息「名称·时间」分组) |
 | CI 模拟器截图 | ✅ 七页 home/manage/chat/logs/settings/bots/room；模拟器冷启动约 5-7 分钟 |
