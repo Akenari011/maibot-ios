@@ -70,12 +70,7 @@ struct Panel<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(p.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(p.separator, lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
+            .background(p.card, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 

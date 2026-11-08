@@ -61,10 +61,11 @@ struct DashboardView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(hourLabel)
-                        .font(.system(size: 15))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(p.textSecondary)
                     Text("麦麦")
-                        .font(.system(size: 40, weight: .black))
+                        .font(.system(size: 34, weight: .bold))
+                        .tracking(-0.4)
                         .foregroundStyle(p.text)
                 }
                 Spacer()

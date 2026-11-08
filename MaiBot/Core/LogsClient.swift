@@ -50,13 +50,18 @@ final class LogsClient {
     private let client: APIClient
     private var ping: Task<Void, Never>?
     private let decoder = JSONDecoder()
+    private var botID: String?
 
     init(client: APIClient) { self.client = client }
 
     private func wsURL() -> URL? {
         guard var comp = URLComponents(url: client.baseURL, resolvingAgainstBaseURL: false) else { return nil }
         comp.scheme = (client.baseURL.scheme == "https") ? "wss" : "ws"
-        comp.path = "/api/webui/ws"
+        if let id = botID, !id.isEmpty {
+            comp.path = "/api/host/bots/\(id)/proxy/api/webui/ws"
+        } else {
+            comp.path = "/api/webui/ws"
+        }
         comp.query = nil
         return comp.url
     }
@@ -65,7 +70,8 @@ final class LogsClient {
         if case .ready = status { return }
         if case .connecting = status { return }
         status = .connecting
-        _ = try? await client.hostMode()
+        let mode = try? await client.hostMode()
+        botID = mode?.selectedBotID
         guard let url = wsURL() else { status = .failed("无效地址"); return }
 
         var req = URLRequest(url: url)
