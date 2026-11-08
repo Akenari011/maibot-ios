@@ -96,7 +96,8 @@ GET   .../proxy/api/webui/config/model
 `.github/workflows/build.yml` 三个 job：
 - `simulator` 编译
 - `screenshot` boot iOS 26 模拟器 → 装 app → 用 `GM_TEST_COOKIE`/`GM_TEST_TAB`/`GM_TEST_CHAT_TEXT` 启动 → 截图 → artifact `app-screenshots`
-  - `GM_TEST_TAB` 可选：home / manage / chat / logs / settings / bots / room（room 直接打开聊天室对话页）
+  - `GM_TEST_TAB` 可选：home / manage / chat / logs / settings / bots / room / dark / stats / config / plugins / memory / prompts / files
+  - 截图与 IPA **仅在工作流手动触发(workflow_dispatch)或 commit 含 `[shot]` 时运行**；普通 push 只做编译（约 3 分钟，适合快速迭代）
   - ⚠️ CI 的 `GM_TEST_COOKIE` 只含 `gm-sso`、无面板会话 `maibot_host_session`，因此**需要面板会话的动态页（日志、聊天室）在 CI 截图里连不上**；真机 WebView 登录会同时拿到两个 cookie，功能正常。
 - `ipa` 未签名 IPA
 
