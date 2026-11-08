@@ -154,6 +154,10 @@ struct ChatView: View {
                 let c = ChatClient(client: client)
                 chat = c
                 await c.connect()
+                if let t = ProcessInfo.processInfo.environment["GM_TEST_CHAT_TEXT"], !t.isEmpty {
+                    try? await Task.sleep(for: .seconds(2))
+                    c.send(t)
+                }
             }
         }
     }
