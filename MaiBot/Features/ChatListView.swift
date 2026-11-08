@@ -29,7 +29,7 @@ struct ChatListView: View {
                     NavigationLink { ChatView() } label: {
                         ChatRowView(icon: "bubble.left.and.bubble.right.fill", title: "与麦麦聊天",
                                     subtitle: "本地聊天室 · 在线", time: "", online: true, avatarTint: p.text)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(PressableStyle())
                 }
 
                 if !filtered.isEmpty {
@@ -38,7 +38,7 @@ struct ChatListView: View {
                             NavigationLink { ChatView() } label: {
                                 ChatRowView(icon: "person.2.fill", title: s.displayName,
                                             subtitle: s.subtitle, time: s.timeText, online: false, avatarTint: p.textSecondary)
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(PressableStyle())
                             if s.id != filtered.last?.id { rowDivider }
                         }
                     }

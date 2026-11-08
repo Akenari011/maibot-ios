@@ -198,3 +198,14 @@ struct DataPanel<Content: View>: View {
             .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(p.separator, lineWidth: 1) }
     }
 }
+
+// MARK: - Interaction
+
+struct PressableStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}

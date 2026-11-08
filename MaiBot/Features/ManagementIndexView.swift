@@ -99,7 +99,7 @@ struct ManagementIndexView: View {
                                     .padding(.horizontal, 16).frame(height: 54)
                                     .contentShape(.rect)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(PressableStyle())
                                 if idx < g.items.count - 1 {
                                     Rectangle().fill(p.separator).frame(height: 1).padding(.leading, 54)
                                 }

@@ -132,6 +132,7 @@ struct MainShell: View {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: on ? .semibold : .regular))
                     .foregroundStyle(on ? p.orange : p.text)
+                    .scaleEffect(on ? 1.06 : 1)
                 Text(label)
                     .font(.system(size: 10, weight: on ? .semibold : .regular))
                     .foregroundStyle(on ? p.orange : p.text)
