@@ -53,6 +53,7 @@ struct MainShell: View {
         case "memory":   start = .manage; mp.append(ManageRoute.memory)
         case "prompts":  start = .manage; mp.append(ManageRoute.prompts)
         case "files":    start = .manage; mp.append(ManageRoute.files)
+        case "news":     start = .home; hp.append(HomeRoute.news)
         default:         start = .home
         }
         _tab = State(initialValue: start)
