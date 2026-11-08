@@ -1,0 +1,16 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# XcodeGen output (generated from project.yml)
+MaiBot.xcodeproj/
+
+# Logs
+build.log
+*.log
+
+# macOS
+.DS_Store
