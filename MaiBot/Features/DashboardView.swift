@@ -85,7 +85,7 @@ struct DashboardView: View {
                 Text("MAIBOT V1.4.0").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(p.text)
                 Text("CONSOLE V1.10.0").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(p.text)
                 Text("资讯").font(.system(size: 14)).foregroundStyle(p.orange)
-                Text("麦麦支持…").font(.system(size: 14)).foregroundStyle(p.textSecondary).lineLimit(1)
+                Text(news.first?.title ?? "麦麦支持…").font(.system(size: 14)).foregroundStyle(p.textSecondary).lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(p.textTertiary)
             }
