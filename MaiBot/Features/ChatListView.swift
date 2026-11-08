@@ -53,6 +53,7 @@ struct ChatListView: View {
             .padding(.horizontal, 16).padding(.top, 8)
         }
         .background(p.bg)
+        .refreshable { await load() }
         .task { await load() }
     }
 
