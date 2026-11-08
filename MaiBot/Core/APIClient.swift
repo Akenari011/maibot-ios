@@ -86,7 +86,7 @@ final class APIClient {
         catch { throw APIError.transport(error) }
         guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
         capturePanel(http)
-        if http.statusCode == 401 { throw unauthorizedError(for: path) }
+        if http.statusCode == 401 { throw unauthorizedError(for: req.url?.path ?? "") }
         guard (200..<300).contains(http.statusCode) else {
             let msg = (try? JSONDecoder().decode(APIErrorBody.self, from: data))?.display
                 ?? String(data: data, encoding: .utf8) ?? ""
