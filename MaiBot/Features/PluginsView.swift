@@ -14,13 +14,24 @@ struct PluginsView: View {
     @Environment(\.palette) private var p
     @State private var items: [PluginRow] = []
     @State private var error: String?
+    @State private var search = ""
+
+    private var filtered: [PluginRow] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        return q.isEmpty ? items : items.filter { $0.name.lowercased().contains(q) || $0.id.lowercased().contains(q) || $0.desc.lowercased().contains(q) }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("插件（\(items.count)）").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                    TextField("搜索插件…", text: $search).font(.system(size: 14)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                }
+                .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
+                Text("插件（\(filtered.count)）").font(.system(size: 13)).foregroundStyle(p.textSecondary)
                 if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
-                ForEach(items) { it in
+                ForEach(filtered) { it in
                     Panel(padding: 14) {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {

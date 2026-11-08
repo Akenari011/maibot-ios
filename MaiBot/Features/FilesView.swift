@@ -14,13 +14,24 @@ struct FilesView: View {
     @Environment(\.palette) private var p
     @State private var items: [FileRow] = []
     @State private var error: String?
+    @State private var search = ""
+
+    private var filtered: [FileRow] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        return q.isEmpty ? items : items.filter { $0.name.lowercased().contains(q) }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("文件（\(items.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                    TextField("搜索文件…", text: $search).font(.system(size: 14)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                }
+                .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
+                Text("文件（\(filtered.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
-                ForEach(items) { f in
+                ForEach(filtered) { f in
                     Panel(padding: 14) {
                         HStack(spacing: 10) {
                             Image(systemName: "doc").font(.system(size: 16)).foregroundStyle(p.textSecondary)
