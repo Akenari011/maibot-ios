@@ -198,6 +198,20 @@ final class APIClient {
     }
 
     func logout() async throws { try await post("/api/webui/auth/logout") }
+
+    func updateToken(_ newToken: String) async throws {
+        _ = try await sendJSON("POST", "/api/webui/auth/update", ["new_token": newToken])
+    }
+
+    func regenerateToken() async throws -> String {
+        let data = try await sendJSON("POST", "/api/webui/auth/regenerate", [:])
+        struct R: Decodable { let token: String }
+        return (try? JSONDecoder().decode(R.self, from: data))?.token ?? ""
+    }
+
+    func resetSetup(resetPassword: Bool) async throws {
+        try await post("/api/webui/setup/reset", json: ["reset_password": resetPassword])
+    }
 }
 
 enum BotAction: String { case start, stop, restart }
