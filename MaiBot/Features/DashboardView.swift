@@ -218,21 +218,38 @@ struct DashboardView: View {
 
     private func statsCard(_ s: Dashboard.Summary) -> some View {
         Panel {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Label("统计概览", systemImage: "chart.bar").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                     Spacer()
                     SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
                 }
-                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 18) {
-                    statCell("总请求数", fmtCount(s.totalRequests))
-                    statCell("总花费", "¥" + String(format: "%.2f", s.totalCost))
-                    statCell("Token消耗", fmtToken(s.totalTokens))
-                    statCell("平均响应", String(format: "%.2fs", s.avgResponseTime))
-                    statCell("在线时长", String(format: "%.1fh", s.onlineTime / 3600))
-                    statCell("消息", fmtCount(s.totalMessages))
+                HStack(alignment: .top, spacing: 24) {
+                    primaryStat("总请求数", fmtCount(s.totalRequests))
+                    primaryStat("总花费", "¥" + String(format: "%.2f", s.totalCost))
+                }
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 16) {
+                    secondaryStat("Token消耗", fmtToken(s.totalTokens))
+                    secondaryStat("平均响应", String(format: "%.2fs", s.avgResponseTime))
+                    secondaryStat("在线时长", String(format: "%.1fh", s.onlineTime / 3600))
+                    secondaryStat("消息", fmtCount(s.totalMessages))
                 }
             }
+        }
+    }
+
+    private func primaryStat(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.system(size: 13)).foregroundStyle(p.textSecondary)
+            Text(value).font(.system(size: 28, weight: .semibold)).tracking(-0.4).foregroundStyle(p.text)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func secondaryStat(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.system(size: 12)).foregroundStyle(p.textSecondary)
+            Text(value).font(.system(size: 20, weight: .semibold)).foregroundStyle(p.text)
         }
     }
 

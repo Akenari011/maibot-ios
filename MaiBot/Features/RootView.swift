@@ -35,6 +35,7 @@ struct MainShell: View {
     @State private var homePath: NavigationPath
     @State private var managePath: NavigationPath
     @Namespace private var tabNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init() {
         var hp = NavigationPath()
@@ -125,7 +126,7 @@ struct MainShell: View {
     private func tabItem(_ t: AppTab, _ label: String, _ icon: String) -> some View {
         let on = tab == t
         return Button {
-            withAnimation(Motion.tab) { tab = t }
+            withAnimation(reduceMotion ? nil : Motion.tab) { tab = t }
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: icon)
