@@ -43,7 +43,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .other("插件市场")),
             ]),
             ManagementGroup(title: "高级工具", items: [
-                ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .other("提示词管理")),
+                ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
                 ManagementItem(icon: "arrow.left.arrow.right", title: "数据传输", route: .other("数据传输")),
             ]),
             ManagementGroup(title: "运行日志", items: [

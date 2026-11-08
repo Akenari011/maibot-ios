@@ -200,6 +200,7 @@ final class APIClient {
     }
 
     func pluginsInstalled(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/installed")) }
+    func configPrompts(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/prompts")) }
     func memorySources(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/sources")) }
 
     func configBot(botID: String) async throws -> Any {
