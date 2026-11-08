@@ -2,15 +2,9 @@
 //  APIClient.swift
 //  MaiBot
 //
-//  Thin async wrapper over the host JSON API.
-//
-//  Two details that are easy to get wrong:
-//
-//  1. Writes to /api/host/* require the header "X-MaiBot-Host: 1". The server
-//     rejects them with 403 "缺少管理请求标识" otherwise.
-//  2. The server's CSRF check (same_webui_origin) short-circuits to true when
-//     the Origin header is absent — which URLSession never sets. So we must
-//     NOT add an Origin header, or the check starts comparing it to Host.
+//  Writes to /api/host/* need "X-MaiBot-Host: 1". The server CSRF check
+//  short-circuits when Origin is absent, and URLSession never sets it, so we
+//  must not add one.
 //
 
 import Foundation
@@ -23,14 +17,10 @@ enum APIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unauthorized:
-            return "登录已失效，请重新登录"
-        case let .http(code, body):
-            return body.isEmpty ? "请求失败（HTTP \(code)）" : body
-        case let .transport(e):
-            return e.localizedDescription
-        case let .decoding(e):
-            return "响应解析失败：\(e.localizedDescription)"
+        case .unauthorized: return "登录已失效，请重新登录"
+        case let .http(code, body): return body.isEmpty ? "请求失败（HTTP \(code)）" : body
+        case let .transport(e): return e.localizedDescription
+        case let .decoding(e): return "响应解析失败：\(e.localizedDescription)"
         }
     }
 }
@@ -38,13 +28,9 @@ enum APIError: LocalizedError {
 @MainActor
 @Observable
 final class APIClient {
-    /// Persisted so a user on a self-hosted instance can point the app at their
-    /// own host without a rebuild.
     var baseURL: URL {
         didSet { UserDefaults.standard.set(baseURL.absoluteString, forKey: Self.baseKey) }
     }
-
-    /// The panel session cookie value, captured from the login web view.
     var sessionCookie: String?
 
     private static let baseKey = "maibot.baseURL"
@@ -53,17 +39,14 @@ final class APIClient {
     init() {
         let saved = UserDefaults.standard.string(forKey: Self.baseKey)
         baseURL = URL(string: saved ?? "https://maibot.galmaster.online")!
-
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 20
         cfg.timeoutIntervalForResource = 40
-        cfg.httpShouldSetCookies = false      // we attach the cookie ourselves
+        cfg.httpShouldSetCookies = false
         cfg.httpCookieAcceptPolicy = .never
         cfg.waitsForConnectivity = true
         session = URLSession(configuration: cfg)
     }
-
-    // MARK: - Core plumbing
 
     private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil) throws -> URLRequest {
         guard let url = URL(string: path, relativeTo: baseURL) else {
@@ -79,7 +62,6 @@ final class APIClient {
         if let sessionCookie, !sessionCookie.isEmpty {
             req.setValue(sessionCookie, forHTTPHeaderField: "Cookie")
         }
-        // Writes to /api/host/* are gated on this marker header.
         if method != "GET" && method != "HEAD" && path.hasPrefix("/api/host/") {
             req.setValue("1", forHTTPHeaderField: "X-MaiBot-Host")
         }
@@ -89,25 +71,17 @@ final class APIClient {
     private func send<T: Decodable>(_ req: URLRequest) async throws -> T {
         let data: Data
         let resp: URLResponse
-        do {
-            (data, resp) = try await session.data(for: req)
-        } catch {
-            throw APIError.transport(error)
-        }
-        guard let http = resp as? HTTPURLResponse else {
-            throw APIError.http(0, "无响应")
-        }
+        do { (data, resp) = try await session.data(for: req) }
+        catch { throw APIError.transport(error) }
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
         if http.statusCode == 401 { throw APIError.unauthorized }
         guard (200..<300).contains(http.statusCode) else {
             let msg = (try? JSONDecoder().decode(APIErrorBody.self, from: data))?.display
                 ?? String(data: data, encoding: .utf8) ?? ""
             throw APIError.http(http.statusCode, msg)
         }
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decoding(error)
-        }
+        do { return try JSONDecoder().decode(T.self, from: data) }
+        catch { throw APIError.decoding(error) }
     }
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -129,7 +103,7 @@ final class APIClient {
         return data
     }
 
-    // MARK: - Endpoints
+    // MARK: - Host endpoints
 
     func checkAuth() async throws -> Bool {
         struct R: Codable { let authenticated: Bool }
@@ -137,21 +111,13 @@ final class APIClient {
         return r.authenticated
     }
 
-    func hostMode() async throws -> HostMode {
-        try await get("/api/host/mode")
-    }
+    func hostMode() async throws -> HostMode { try await get("/api/host/mode") }
 
     func bots() async throws -> [Bot] {
         let list: BotList = try await get("/api/host/bots")
         return list.bots
     }
 
-    func settings() async throws -> HostSettings {
-        try await get("/api/host/settings")
-    }
-
-    /// Start / stop / restart. The host API expresses this as a POST of the
-    /// desired state onto the bot resource.
     func setBotState(_ botID: String, action: BotAction) async throws {
         try await post("/api/host/bots/\(botID)", json: ["action": action.rawValue])
     }
@@ -160,25 +126,26 @@ final class APIClient {
         try await post("/api/host/selection", json: ["bot_id": botID])
     }
 
-    func logs(botID: String, limit: Int = 400) async throws -> String {
-        // The log endpoint is versioned; try the modern shape then fall back.
-        for path in [
-            "/api/host/bots/\(botID)/logs?limit=\(limit)",
-            "/api/host/logs?bot_id=\(botID)&limit=\(limit)"
-        ] {
-            if let chunk: LogChunk = try? await get(path) {
-                let text = chunk.text
-                if !text.isEmpty { return text }
-            }
-        }
-        return ""
+    // MARK: - Per-bot proxy (the panel itself lives behind /proxy)
+
+    private func proxy(_ botID: String, _ sub: String) -> String {
+        "/api/host/bots/\(botID)/proxy/api/webui/\(sub)"
     }
 
-    func logout() async throws {
-        try await post("/api/webui/auth/logout")
+    func dashboard(botID: String, hours: Int = 24) async throws -> Dashboard {
+        try await get(proxy(botID, "statistics/dashboard?hours=\(hours)"))
     }
+
+    func localCache(botID: String) async throws -> LocalCache {
+        try await get(proxy(botID, "system/local-cache"))
+    }
+
+    func news(botID: String) async throws -> [NewsResponse.NewsItem] {
+        let r: NewsResponse = try await get(proxy(botID, "news"))
+        return r.items
+    }
+
+    func logout() async throws { try await post("/api/webui/auth/logout") }
 }
 
-enum BotAction: String {
-    case start, stop, restart
-}
+enum BotAction: String { case start, stop, restart }

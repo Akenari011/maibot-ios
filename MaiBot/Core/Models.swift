@@ -2,9 +2,6 @@
 //  Models.swift
 //  MaiBot
 //
-//  Plain Codable mirrors of the host API. Field names match the JSON exactly;
-//  anything the app does not use is simply omitted.
-//
 
 import Foundation
 
@@ -49,32 +46,21 @@ struct Bot: Codable, Identifiable, Hashable {
         case logPath = "log_path"
     }
 
-    /// "running" / "stopped" / "starting" / "crashing" …
     var isRunning: Bool { (status ?? "") == "running" }
-
-    var statusTone: StatusPill.Tone {
-        switch status ?? "" {
-        case "running":  return .ok
-        case "starting", "restarting": return .warn
-        case "failed", "crashed", "exited": return .bad
-        default: return .idle
-        }
-    }
 
     var statusLabel: String {
         switch status ?? "" {
-        case "running":  return "运行中"
-        case "stopped":  return "已停止"
-        case "starting": return "启动中"
+        case "running":    return "运行中"
+        case "stopped":    return "已停止"
+        case "starting":   return "启动中"
         case "restarting": return "重启中"
-        case "failed":   return "失败"
-        case "crashed":  return "已崩溃"
-        case "exited":   return "已退出"
-        default:         return status ?? "未知"
+        case "failed":     return "失败"
+        case "crashed":    return "已崩溃"
+        case "exited":     return "已退出"
+        default:           return status ?? "未知"
         }
     }
 
-    /// Uptime derived from started_at, e.g. "3 天 7 小时".
     var uptimeText: String? {
         guard isRunning, let s = startedAt, let d = ISO8601.date(from: s) else { return nil }
         let secs = Date().timeIntervalSince(d)
@@ -82,9 +68,9 @@ struct Bot: Codable, Identifiable, Hashable {
         let days = Int(secs) / 86400
         let hours = (Int(secs) % 86400) / 3600
         let mins = (Int(secs) % 3600) / 60
-        if days > 0 { return "\(days) 天 \(hours) 小时" }
-        if hours > 0 { return "\(hours) 小时 \(mins) 分" }
-        return "\(mins) 分钟"
+        if days > 0 { return "\(days)天\(hours)小时" }
+        if hours > 0 { return "\(hours)小时\(mins)分" }
+        return "\(mins)分钟"
     }
 }
 
@@ -93,9 +79,6 @@ struct BotList: Codable {
     let workspace: String?
 }
 
-// MARK: - Host mode
-
-/// GET /api/host/mode — the single call that drives the dashboard header.
 struct HostMode: Codable {
     let host: Bool
     let authenticated: Bool
@@ -109,78 +92,149 @@ struct HostMode: Codable {
     }
 }
 
-// MARK: - Session
+struct AuthCheck: Codable { let authenticated: Bool }
 
-struct HostSession: Codable {
-    let authenticated: Bool
-}
+// MARK: - Dashboard statistics
 
-struct AuthCheck: Codable {
-    let authenticated: Bool
-}
+struct Dashboard: Codable {
+    let summary: Summary
+    let modelStats: [ModelStat]
+    let hourlyData: [HourPoint]
 
-// MARK: - Settings (only the slice we display)
+    enum CodingKeys: String, CodingKey {
+        case summary
+        case modelStats = "model_stats"
+        case hourlyData = "hourly_data"
+    }
 
-struct HostSettings: Codable {
-    let revision: String?
-    let webui: WebUI?
-
-    struct WebUI: Codable {
-        let hosts: [String]?
-        let port: Int?
-        let enabled: Bool?
-        let antiCrawlerMode: String?
-        let publicBaseURL: String?
+    struct Summary: Codable {
+        let totalRequests: Double
+        let totalCost: Double
+        let totalTokens: Double
+        let inputTokens: Double
+        let outputTokens: Double
+        let cacheHitRate: Double?
+        let chatCacheHitRate: Double?
+        let onlineTime: Double
+        let totalMessages: Double
+        let totalReplies: Double
+        let avgResponseTime: Double
 
         enum CodingKeys: String, CodingKey {
-            case hosts, port, enabled
-            case antiCrawlerMode = "anti_crawler_mode"
-            case publicBaseURL = "public_base_url"
+            case totalRequests = "total_requests"
+            case totalCost = "total_cost"
+            case totalTokens = "total_tokens"
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
+            case cacheHitRate = "cache_hit_rate"
+            case chatCacheHitRate = "chat_cache_hit_rate"
+            case onlineTime = "online_time"
+            case totalMessages = "total_messages"
+            case totalReplies = "total_replies"
+            case avgResponseTime = "avg_response_time"
+        }
+    }
+
+    struct ModelStat: Codable, Identifiable {
+        let modelName: String
+        let requestCount: Double
+        let totalCost: Double
+        let totalTokens: Double
+        var id: String { modelName }
+
+        enum CodingKeys: String, CodingKey {
+            case modelName = "model_name"
+            case requestCount = "request_count"
+            case totalCost = "total_cost"
+            case totalTokens = "total_tokens"
+        }
+    }
+
+    struct HourPoint: Codable, Identifiable {
+        let timestamp: String
+        let requests: Double
+        let tokens: Double
+        let inputTokens: Double
+        let outputTokens: Double
+        var id: String { timestamp }
+
+        enum CodingKeys: String, CodingKey {
+            case timestamp, requests, tokens
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
+        }
+
+        /// "18:00" for the chart axis.
+        var hourLabel: String {
+            let t = timestamp
+            guard t.count >= 13 else { return t }
+            let idx = t.index(t.startIndex, offsetBy: 11)
+            let end = t.index(idx, offsetBy: 5)
+            return String(t[idx..<end])
         }
     }
 }
 
-// MARK: - Log
+// MARK: - Local cache (storage card)
 
-struct LogChunk: Codable {
-    let lines: [String]?
-    let content: String?
-    let path: String?
-    let truncated: Bool?
+struct LocalCache: Codable {
+    let directories: [Dir]
+    let database: DB
 
-    /// The API has changed shape across versions; accept either.
-    var text: String {
-        if let lines, !lines.isEmpty { return lines.joined(separator: "\n") }
-        return content ?? ""
+    struct Dir: Codable, Identifiable {
+        let key: String
+        let label: String
+        let fileCount: Double
+        let totalSize: Double
+        var id: String { key }
+
+        enum CodingKeys: String, CodingKey {
+            case key, label
+            case fileCount = "file_count"
+            case totalSize = "total_size"
+        }
+    }
+
+    struct DB: Codable {
+        let totalSize: Double
+        enum CodingKeys: String, CodingKey { case totalSize = "total_size" }
     }
 }
 
-// MARK: - Errors
+// MARK: - News
+
+struct NewsResponse: Codable {
+    let items: [NewsItem]
+
+    struct NewsItem: Codable, Identifiable {
+        let id: String
+        let title: String
+        let summary: String?
+        let source: String?
+        let publishedAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, title, summary, source
+            case publishedAt = "published_at"
+        }
+    }
+}
+
+// MARK: - Errors & dates
 
 struct APIErrorBody: Codable {
     let detail: String?
     let error: String?
     let message: String?
-    var display: String {
-        detail ?? error ?? message ?? "未知错误"
-    }
+    var display: String { detail ?? error ?? message ?? "未知错误" }
 }
 
-// MARK: - Dates
-
 enum ISO8601 {
-    private static let withFraction: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
+    private static let a: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f
     }()
-    private static let plain: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
+    private static let b: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]; return f
     }()
-
-    static func date(from s: String) -> Date? {
-        withFraction.date(from: s) ?? plain.date(from: s)
-    }
+    static func date(from s: String) -> Date? { a.date(from: s) ?? b.date(from: s) }
 }

@@ -2,239 +2,342 @@
 //  DashboardView.swift
 //  MaiBot
 //
+//  Home screen, laid out 1:1 with the panel: activity card, quick-action
+//  grid, storage breakdown, statistics, charts, prompt cache, news.
+//
 
 import SwiftUI
+import Charts
 
 struct DashboardView: View {
     @Environment(APIClient.self) private var client
     @Environment(AuthStore.self) private var auth
     @Environment(\.palette) private var p
 
-    @State private var mode: HostMode?
-    @State private var bots: [Bot] = []
+    @State private var bot: Bot?
+    @State private var dash: Dashboard?
+    @State private var cache: LocalCache?
+    @State private var news: [NewsResponse.NewsItem] = []
     @State private var error: String?
-    @State private var busy = false
-    @State private var appeared = false
+    @State private var range: Int = 24
 
-    private var selectedBot: Bot? {
-        guard let id = mode?.selectedBotID else { return bots.first }
-        return bots.first { $0.botID == id }
+    private var hourLabel: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日EEEE"
+        return f.string(from: Date())
     }
 
-    private var runningCount: Int { bots.filter(\.isRunning).count }
-
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
-                    if let error {
-                        ErrorBanner(message: error) { Task { await load() } }
-                    }
+        ScrollView {
+            VStack(spacing: 14) {
+                header
+                if let error {
+                    ErrorBanner(message: error) { Task { await load() } }
+                }
+                activityCard
+                gridCard
+                if let cache { storageCard(cache) }
+                if let dash { statsCard(dash.summary) }
+                if let dash { trendCard(dash) }
+                if let dash { tokenCard(dash) }
+                if let dash { promptCard(dash.summary) }
+                if !news.isEmpty { newsCard }
+                Spacer(minLength: 90)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+        .background(p.bg)
+        .refreshable { await load() }
+        .task { await load() }
+    }
 
-                    heroCard
-                    statsRow
-                    if let b = selectedBot { botCard(b) }
-                    quickActions
+    // MARK: header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hourLabel)
+                        .font(.system(size: 15))
+                        .foregroundStyle(p.textSecondary)
+                    Text("麦麦")
+                        .font(.system(size: 40, weight: .black))
+                        .foregroundStyle(p.text)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                Spacer()
+                Image(systemName: "gearshape")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(p.text)
+                    .padding(.top, 10)
             }
-            .background(p.background)
-            .navigationTitle("概览")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await load() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(busy)
-                }
+            HStack(spacing: 14) {
+                Text("MAIBOT V1.4.0").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(p.text)
+                Text("CONSOLE V1.10.0").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(p.text)
+                Text("资讯").font(.system(size: 14)).foregroundStyle(p.orange)
+                Text("麦麦支持…").font(.system(size: 14)).foregroundStyle(p.textSecondary).lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(p.textTertiary)
             }
-            .refreshable { await load() }
-            .task { await load() }
         }
     }
 
-    // MARK: - Sections
+    // MARK: activity
 
-    private var heroCard: some View {
+    private var activityCard: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center, spacing: 10) {
+                    Text("活动").font(.system(size: 38, weight: .black)).foregroundStyle(p.text)
+                    Circle().fill(p.green).frame(width: 11, height: 11)
+                }
+                Text(bot?.uptimeText ?? "离线")
+                    .font(.system(size: 22))
+                    .foregroundStyle(p.textSecondary)
+                    .padding(.top, 2)
+                Divider().overlay(p.separator).padding(.vertical, 16)
+                HStack(spacing: 0) {
+                    DotTag(text: "启用视觉")
+                    Spacer()
+                    DotTag(text: "启用记忆")
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    // MARK: quick grid
+
+    private var gridCard: some View {
+        Panel(padding: 18) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
+                GridTile(icon: "doc.text", label: "查看日志")
+                GridTile(icon: "gearshape", label: "外观设置")
+                GridTile(icon: "cpu", label: "模型列表")
+                GridTile(icon: "bubble.left", label: "麦麦聊聊")
+                GridTile(icon: "doc.on.doc", label: "回复日志")
+                GridTile(icon: "doc.text.magnifyingglass", label: "推理日志")
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    // MARK: storage
+
+    private func storageCard(_ c: LocalCache) -> some View {
+        // image / emoji / logs dirs + database
+        var rows: [(String, Double)] = []
+        for d in c.directories {
+            let label = d.key == "images" ? "图片" : (d.key == "emoji" ? "表情" : (d.key == "logs" ? "日志" : d.label))
+            rows.append((label, d.totalSize))
+        }
+        rows.append(("数据库", c.database.totalSize))
+        let total = rows.reduce(0) { $0 + $1.1 }
+        return Panel {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(fmtSize(total)).font(.system(size: 38, weight: .black)).foregroundStyle(p.text)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Text("大小").font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text)
+                        Text("/").font(.system(size: 14)).foregroundStyle(p.textTertiary)
+                        Text("数量").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                    }
+                }
+                VStack(spacing: 14) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, r in
+                        StorageRow(label: r.0, value: fmtSize(r.1), fraction: total > 0 ? r.1 / total : 0)
+                    }
+                }
+                HStack {
+                    Spacer()
+                    Text("管理存储").font(.system(size: 15, weight: .medium)).foregroundStyle(p.orange)
+                    Image(systemName: "arrow.right").font(.system(size: 12, weight: .medium)).foregroundStyle(p.orange)
+                }
+            }
+        }
+    }
+
+    // MARK: stats
+
+    private func statsCard(_ s: Dashboard.Summary) -> some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("统计概览", systemImage: "chart.bar").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                    Spacer()
+                    SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
+                }
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 18) {
+                    statCell("总请求数", fmtCount(s.totalRequests))
+                    statCell("总花费", "¥" + String(format: "%.2f", s.totalCost))
+                    statCell("Token消耗", fmtToken(s.totalTokens))
+                    statCell("平均响应", String(format: "%.2fs", s.avgResponseTime))
+                    statCell("在线时长", String(format: "%.1fh", s.onlineTime / 3600))
+                    statCell("消息", fmtCount(s.totalMessages))
+                }
+            }
+        }
+    }
+
+    private func statCell(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.system(size: 14)).foregroundStyle(p.textSecondary)
+            Text(value).font(.system(size: 26, weight: .bold)).foregroundStyle(p.text)
+        }
+    }
+
+    // MARK: charts
+
+    private func trendCard(_ d: Dashboard) -> some View {
         Panel {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("宿主状态")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(p.textMute)
-                        Text(mode?.authenticated == true ? "已连接" : "连接中…")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(p.text)
-                    }
+                    Label("请求趋势", systemImage: "chart.line.uptrend.xyaxis").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                     Spacer()
-                    StatusPill(
-                        text: mode?.host == true ? "宿主模式" : "待机",
-                        tone: mode?.host == true ? .ok : .idle
-                    )
+                    SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
                 }
-
-                Divider().overlay(p.border)
-
-                HStack(spacing: 0) {
-                    metric("在线机器人", "\(runningCount)/\(bots.count)", p.accent)
-                    Rectangle().fill(p.border).frame(width: 1, height: 30)
-                    metric("当前选中", selectedBot?.name ?? "—", p.text)
+                HStack(spacing: 6) {
+                    Circle().fill(p.orange).frame(width: 7, height: 7)
+                    Text("请求数").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 }
+                Chart(d.hourlyData) { pt in
+                    LineMark(x: .value("时间", pt.hourLabel), y: .value("请求", pt.requests))
+                        .foregroundStyle(p.orange)
+                        .interpolationMethod(.catmullRom)
+                    AreaMark(x: .value("时间", pt.hourLabel), y: .value("请求", pt.requests))
+                        .foregroundStyle(p.orange.opacity(0.08))
+                        .interpolationMethod(.catmullRom)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: 6)) { val in
+                        AxisGridLine().foregroundStyle(p.separator)
+                        AxisValueLabel().font(.system(size: 10)).foregroundStyle(p.textTertiary)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { val in
+                        AxisGridLine().foregroundStyle(p.separator)
+                        AxisValueLabel().font(.system(size: 10)).foregroundStyle(p.textTertiary)
+                    }
+                }
+                .frame(height: 180)
             }
         }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 10)
     }
 
-    private var statsRow: some View {
-        HStack(spacing: 12) {
-            statTile(icon: "bolt.fill", label: "运行中", value: "\(runningCount)", tint: p.accent)
-            statTile(icon: "pause.fill", label: "已停止", value: "\(bots.count - runningCount)", tint: p.textMute)
-        }
-    }
-
-    private func botCard(_ b: Bot) -> some View {
+    private func tokenCard(_ d: Dashboard) -> some View {
         Panel {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(b.name).font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(p.text)
-                        Text(b.directory ?? "")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(p.textMute)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
+                    Label("Token消耗", systemImage: "chart.bar.doc.horizontal").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
                     Spacer()
-                    StatusPill(text: b.statusLabel, tone: b.statusTone)
+                    SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
                 }
-
-                Divider().overlay(p.border)
-
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    infoCell("PID", b.pid.map(String.init) ?? "—")
-                    infoCell("运行时长", b.uptimeText ?? "—")
-                    infoCell("重启策略", b.restartPolicy ?? "—")
-                    infoCell("初始化", b.initialization ?? "—")
+                HStack(spacing: 14) {
+                    HStack(spacing: 6) { Circle().fill(p.orange).frame(width: 7, height: 7); Text("输入 Token").font(.system(size: 12)).foregroundStyle(p.textSecondary) }
+                    HStack(spacing: 6) { Circle().fill(Color(hex: 0x2FD6C4)).frame(width: 7, height: 7); Text("输出 Token").font(.system(size: 12)).foregroundStyle(p.textSecondary) }
                 }
+                Chart(d.hourlyData) { pt in
+                    BarMark(x: .value("时间", pt.hourLabel), y: .value("Token", pt.inputTokens))
+                        .foregroundStyle(p.orange)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: 6)) { _ in
+                        AxisValueLabel().font(.system(size: 10)).foregroundStyle(p.textTertiary)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { _ in
+                        AxisGridLine().foregroundStyle(p.separator)
+                        AxisValueLabel().font(.system(size: 10)).foregroundStyle(p.textTertiary)
+                    }
+                }
+                .frame(height: 170)
+            }
+        }
+    }
 
-                if let err = b.error, !err.isEmpty {
-                    Text(err)
-                        .font(.system(size: 12))
-                        .foregroundStyle(p.danger)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(p.danger.opacity(0.1), in: .rect(cornerRadius: 8))
+    private func promptCard(_ s: Dashboard.Summary) -> some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("Prompt缓存", systemImage: "arrow.triangle.2.circlepath").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                    Spacer()
+                    SegmentedChips(items: [24, 168, 720], label: { $0 == 24 ? "24小时" : ($0 == 168 ? "7天" : "30天") }, selection: $range)
+                }
+                HStack(spacing: 12) {
+                    cacheTile("全部", s.cacheHitRate ?? 0)
+                    cacheTile("聊天", s.chatCacheHitRate ?? 0)
                 }
             }
         }
     }
 
-    private var quickActions: some View {
-        Panel {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("快捷操作")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(p.textMute)
+    private func cacheTile(_ title: String, _ rate: Double) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.system(size: 13)).foregroundStyle(p.textSecondary)
+            Text(String(format: "%.2f%%", rate * 100)).font(.system(size: 26, weight: .bold)).foregroundStyle(p.text)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(p.separator)
+                    Capsule().fill(p.text).frame(width: max(4, geo.size.width * min(max(rate, 0), 1)))
+                }
+            }
+            .frame(height: 7)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(p.separator, lineWidth: 1) }
+    }
 
-                if let b = selectedBot {
-                    HStack(spacing: 10) {
-                        actionButton("启动", "play.fill", p.accent) {
-                            await act(b, .start)
+    // MARK: news
+
+    private var newsCard: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Label("资讯", systemImage: "newspaper").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                    Text("\(news.count)条未读").font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
+                        .padding(.horizontal, 7).padding(.vertical, 2).background(p.text, in: .capsule)
+                    Spacer()
+                }
+                ForEach(news.prefix(3)) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Circle().fill(p.text).frame(width: 4, height: 4)
+                            Text(item.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
                         }
-                        actionButton("重启", "arrow.triangle.2.circlepath", p.amber) {
-                            await act(b, .restart)
-                        }
-                        actionButton("停止", "stop.fill", p.danger) {
-                            await act(b, .stop)
+                        Text(item.summary ?? "").font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2)
+                        HStack {
+                            Text(item.source ?? "麦麦官方").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                            Spacer()
                         }
                     }
-                } else {
-                    Text("没有可操作的机器人").font(.system(size: 13)).foregroundStyle(p.textDim)
+                    .padding(.vertical, 4)
+                    if item.id != news.prefix(3).last?.id { Divider().overlay(p.separator) }
                 }
             }
         }
     }
 
-    // MARK: - Pieces
-
-    private func metric(_ label: String, _ value: String, _ tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.system(size: 16, weight: .semibold)).foregroundStyle(tint)
-            Text(label).font(.system(size: 11)).foregroundStyle(p.textMute)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func statTile(icon: String, label: String, value: String, tint: Color) -> some View {
-        Panel(padding: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(tint)
-                Text(value).font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(p.text)
-                Text(label).font(.system(size: 11)).foregroundStyle(p.textMute)
-            }
-        }
-    }
-
-    private func infoCell(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.system(size: 10)).foregroundStyle(p.textMute)
-            Text(value).font(.system(size: 13, weight: .medium)).foregroundStyle(p.textDim)
-                .lineLimit(1).truncationMode(.tail)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func actionButton(_ title: String, _ icon: String, _ tint: Color, run: @escaping () async -> Void) -> some View {
-        Button {
-            Task { await run() }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 12))
-                Text(title).font(.system(size: 13, weight: .medium))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(tint.opacity(0.13), in: .rect(cornerRadius: 10))
-            .foregroundStyle(tint)
-        }
-        .disabled(busy)
-    }
-
-    // MARK: - Data
+    // MARK: data
 
     private func load() async {
-        busy = true
-        defer { busy = false }
         do {
-            async let m = client.hostMode()
-            async let b = client.bots()
-            mode = try await m
-            bots = try await b
+            let mode = try await client.hostMode()
+            let list = try await client.bots()
+            bot = list.first { $0.botID == mode.selectedBotID } ?? list.first
+            if let b = bot {
+                async let d = client.dashboard(botID: b.botID, hours: range)
+                async let c = client.localCache(botID: b.botID)
+                async let n = client.news(botID: b.botID)
+                dash = try await d
+                cache = try await c
+                news = (try? await n) ?? []
+            }
             error = nil
-        } catch APIError.unauthorized {
-            await auth.signOut(client: client)
-        } catch {
-            self.error = error.localizedDescription
-        }
-        withAnimation(.easeOut(duration: 0.3)) { appeared = true }
-    }
-
-    private func act(_ bot: Bot, _ action: BotAction) async {
-        busy = true
-        defer { busy = false }
-        do {
-            try await client.setBotState(bot.botID, action: action)
-            try? await Task.sleep(for: .milliseconds(700))
-            await load()
         } catch APIError.unauthorized {
             await auth.signOut(client: client)
         } catch {
@@ -243,28 +346,40 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Shared bits
+// MARK: - Formatting
+
+func fmtSize(_ bytes: Double) -> String {
+    let gb = bytes / 1_073_741_824
+    if gb >= 1 { return String(format: "%.1f GB", gb) }
+    let mb = bytes / 1_048_576
+    if mb >= 1 { return String(format: "%.0f MB", mb) }
+    return String(format: "%.0f KB", bytes / 1024)
+}
+
+func fmtCount(_ n: Double) -> String {
+    if n >= 1_000_000 { return String(format: "%.2fM", n / 1_000_000) }
+    if n >= 1_000 { return String(format: "%.2fK", n / 1_000) }
+    return String(format: "%.0f", n)
+}
+
+func fmtToken(_ n: Double) -> String {
+    if n >= 1_000_000 { return String(format: "%.2fM", n / 1_000_000) }
+    if n >= 1_000 { return String(format: "%.0fK", n / 1_000) }
+    return String(format: "%.0f", n)
+}
 
 struct ErrorBanner: View {
     @Environment(\.palette) private var p
     let message: String
     let retry: () -> Void
-
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(p.danger)
-            Text(message).font(.system(size: 13)).foregroundStyle(p.text)
-                .lineLimit(3)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            Text(message).font(.system(size: 13)).foregroundStyle(p.text).lineLimit(3)
             Spacer()
-            Button("重试", action: retry)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(p.accent)
+            Button("重试", action: retry).font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
         }
-        .padding(12)
-        .background(p.danger.opacity(0.08), in: .rect(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12).strokeBorder(p.danger.opacity(0.3), lineWidth: 1)
-        }
+        .padding(14)
+        .background(Color.red.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
     }
 }
