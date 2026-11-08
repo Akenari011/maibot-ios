@@ -19,6 +19,7 @@ struct MemorySourcesView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("记忆来源（\(items.count)）").font(.system(size: 13)).foregroundStyle(p.textSecondary)
                 if let e = error { Text(e).font(.system(size: 13)).foregroundStyle(.red) }
+                if items.isEmpty { Text("暂无记忆来源").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30) }
                 ForEach(items) { it in
                     Panel(padding: 14) {
                         HStack(spacing: 10) {
