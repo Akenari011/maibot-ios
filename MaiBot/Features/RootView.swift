@@ -268,7 +268,7 @@ struct ChatView: View {
                     if chat.waiting {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.small)
-                            Text("麦麦正在输入…").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                            Text(chat.peerName + "正在输入…").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                             Spacer()
                         }
                         .padding(.horizontal, 4)
