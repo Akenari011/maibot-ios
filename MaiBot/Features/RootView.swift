@@ -33,20 +33,24 @@ struct MainShell: View {
     @Environment(\.palette) private var p
     @State private var tab: AppTab
     @State private var homePath: NavigationPath
-    @State private var managePath = NavigationPath()
+    @State private var managePath: NavigationPath
     @Namespace private var tabNS
 
     init() {
         var hp = NavigationPath()
+        var mp = NavigationPath()
         let start: AppTab
         switch TestSupport.startTab {
-        case "chat":   start = .chat
-        case "manage": start = .manage
-        case "logs":   start = .home; hp.append(HomeRoute.logs)
-        default:       start = .home
+        case "chat":     start = .chat
+        case "manage":   start = .manage
+        case "logs":     start = .home; hp.append(HomeRoute.logs)
+        case "settings": start = .home; hp.append(HomeRoute.settings)
+        case "bots":     start = .manage; mp.append(ManageRoute.bots)
+        default:         start = .home
         }
         _tab = State(initialValue: start)
         _homePath = State(initialValue: hp)
+        _managePath = State(initialValue: mp)
     }
 
     var body: some View {

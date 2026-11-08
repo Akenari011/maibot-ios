@@ -40,7 +40,12 @@ struct BotsView: View {
         }
         .background(p.bg)
         .refreshable { await load() }
-        .task { await load() }
+        .task {
+            while !Task.isCancelled {
+                await load()
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
         .alert("重命名 Bot", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("新名称", text: $textDraft)
             Button("取消", role: .cancel) {}
@@ -216,7 +221,7 @@ struct BotsView: View {
                     rectDivider(30)
                     infoCol("退出码", bot.exitCode.map(String.init) ?? "—")
                     rectDivider(30)
-                    infoCol("GATEWAY", "/main/" + String(bot.botID.prefix(6)) + "…", tint: p.orange)
+                    infoCol("GATEWAY", "/maim/" + String(bot.botID.prefix(8)) + "…", tint: p.orange)
                 }
                 .padding(.vertical, 10)
                 .background(p.iconCircle.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))

@@ -86,7 +86,7 @@ jobs:
           test -d "$APP" || { echo "app missing"; ls -R build/sim/Build/Products || true; exit 1; }
           xcrun simctl install "$DEV" "$APP"
           xcrun simctl status_bar "$DEV" override --time "9:41" --batteryLevel 100 --cellularBars 4 || true
-          for TAB in home manage chat logs; do
+          for TAB in home manage chat logs settings bots; do
             echo "=== $TAB ==="
             SLEEP=18
             if [ "$TAB" = "chat" ]; then
@@ -97,7 +97,7 @@ jobs:
                 SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
                 xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
             else
-              if [ "$TAB" = "logs" ]; then SLEEP=20; fi
+              if [ "$TAB" = "logs" ] || [ "$TAB" = "bots" ]; then SLEEP=20; fi
               SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB="$TAB" \
                 xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
             fi
