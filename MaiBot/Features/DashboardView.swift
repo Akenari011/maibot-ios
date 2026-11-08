@@ -399,6 +399,9 @@ struct DashboardView: View {
                     Text("\(news.count)条未读").font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
                         .padding(.horizontal, 7).padding(.vertical, 2).background(p.text, in: .capsule)
                     Spacer()
+                    NavigationLink(value: HomeRoute.news) {
+                        Text("查看全部").font(.system(size: 12)).foregroundStyle(p.orange)
+                    }.buttonStyle(.plain)
                 }
                 ForEach(news.prefix(3)) { item in
                     VStack(alignment: .leading, spacing: 4) {
