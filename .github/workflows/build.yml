@@ -48,6 +48,7 @@ jobs:
     name: Screenshot on Simulator
     runs-on: macos-15
     needs: simulator
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[shot]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select newest Xcode
@@ -115,6 +116,7 @@ jobs:
   ipa:
     name: Package unsigned IPA
     runs-on: macos-15
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[shot]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Select newest Xcode
