@@ -2,36 +2,84 @@
 //  LogsView.swift
 //  MaiBot
 //
-//  Real-time log viewer backed by the panel's unified websocket
-//  (subscribe logs/main -> snapshot + entry). Monospaced, tailing, with a
-//  severity filter.
+//  Log page reconstructed from the web dashboard's LogTerminalPane
+//  (dashboard/src/routes/logs.tsx). The terminal keeps the web page's fixed
+//  dark-brown palette regardless of theme:
+//    card #633312, scroll area #211607, timestamp gray, module cyan,
+//    level colours INFO=blue WARNING=amber ERROR=red CRITICAL=dark-red bold.
+//  Data comes from LogsClient (unified ws: subscribe logs/main).
 //
 
 import SwiftUI
+import UIKit
+
+private enum LogLevels {
+    static let order: [String: Int] = [
+        "DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50,
+    ]
+    static func rank(_ level: String) -> Int { order[level.uppercased()] ?? 0 }
+    static func short(_ level: String) -> String { String(level.prefix(4)).uppercased() }
+    static func color(_ level: String) -> Color {
+        switch level.uppercased() {
+        case "DEBUG":    return Color(hex: 0x9CA3AF)
+        case "INFO":     return Color(hex: 0x3B82F6)
+        case "WARNING":  return Color(hex: 0xCA8A04)
+        case "ERROR":    return Color(hex: 0xDC2626)
+        case "CRITICAL": return Color(hex: 0xB91C1C)
+        default:         return Color(hex: 0xD1D5DB)
+        }
+    }
+}
+
+private enum LogFontSize: String, CaseIterable {
+    case xs, sm, base
+    var label: String { self == .xs ? "小" : (self == .sm ? "中" : "大") }
+    var point: CGFloat { self == .xs ? 10 : (self == .sm ? 12 : 14) }
+}
+
+private enum LevelFilter: String, CaseIterable {
+    case all, DEBUG, INFO, WARNING, ERROR, CRITICAL
+    var label: String {
+        switch self {
+        case .all: return "全部级别"
+        case .DEBUG: return "DEBUG 及以上"
+        case .INFO: return "INFO 及以上"
+        case .WARNING: return "WARNING 及以上"
+        case .ERROR: return "ERROR 及以上"
+        case .CRITICAL: return "CRITICAL"
+        }
+    }
+}
+
+private struct ModuleOption: Identifiable, Hashable {
+    let id: String
+    let name: String
+}
 
 struct LogsView: View {
     @Environment(APIClient.self) private var client
     @Environment(\.palette) private var p
 
     @State private var logs: LogsClient?
-    @State private var filter = "全部"
+    @State private var search = ""
+    @State private var filterOpen = false
+    @State private var sourcesOpen = false
+    @State private var exportURL: URL?
 
-    private let filters = ["全部", "错误", "警告"]
+    @AppStorage("log.level") private var levelFilterRaw = "INFO"
+    @AppStorage("log.font") private var fontRaw = "xs"
+    @AppStorage("log.lineSpacing") private var lineSpacing = 4.0
+    @AppStorage("log.autoFollow") private var autoFollow = true
 
-    private var filtered: [LogEntry] {
-        guard let logs else { return [] }
-        switch filter {
-        case "错误": return logs.entries.filter { $0.level == "ERROR" || $0.level == "CRITICAL" }
-        case "警告": return logs.entries.filter { $0.level == "WARNING" }
-        default:     return logs.entries
-        }
-    }
+    private var levelFilter: LevelFilter { LevelFilter(rawValue: levelFilterRaw) ?? .INFO }
+    private var fontSize: LogFontSize { LogFontSize(rawValue: fontRaw) ?? .xs }
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            toolbar
             if let logs {
-                content(logs)
+                statusLine(logs)
+                terminal(logs)
             } else {
                 Spacer(); ProgressView(); Spacer()
             }
@@ -40,6 +88,10 @@ struct LogsView: View {
         .background(p.bg)
         .navigationTitle("日志")
         .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $filterOpen) { filterSheet }
+        .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) {
+            if let url = exportURL { ActivityView(items: [url]) }
+        }
         .task {
             if logs == nil {
                 let c = LogsClient(client: client)
@@ -49,97 +101,253 @@ struct LogsView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 10) {
-            if let logs {
-                switch logs.status {
-                case .ready:     statusDot("实时", p.green)
-                case .connecting: statusDot("连接中…", p.orange)
-                case .idle:      statusDot("未连接", p.textTertiary)
-                case .failed(_): statusDot("连接失败", .red)
-                }
-                Text("\(logs.entries.count) 条")
-                    .font(.system(size: 12)).foregroundStyle(p.textSecondary)
+    private var allEntries: [LogEntry] { logs?.entries ?? [] }
+
+    private var modules: [ModuleOption] {
+        var seen = [String: String]()
+        for e in allEntries {
+            let id = e.module.trimmingCharacters(in: .whitespaces)
+            if !id.isEmpty, seen[id] == nil { seen[id] = displayModule(e) }
+        }
+        return seen.map { ModuleOption(id: $0.key, name: $0.value) }.sorted { $0.name < $1.name }
+    }
+
+    private var filtered: [LogEntry] {
+        let q = search.lowercased()
+        let minRank = levelFilter == .all ? Int.min : LogLevels.rank(levelFilter.rawValue)
+        return allEntries.filter { e in
+            if minRank != Int.min, LogLevels.rank(e.level) < minRank { return false }
+            if !q.isEmpty {
+                let hit = e.message.lowercased().contains(q)
+                    || e.module.lowercased().contains(q)
+                    || displayModule(e).lowercased().contains(q)
+                if !hit { return false }
             }
-            Spacer()
-            SegmentedChips(items: filters, label: { $0 }, selection: $filter)
+            return true
+        }
+    }
+
+    private func displayModule(_ e: LogEntry) -> String {
+        if let n = e.moduleDisplayName?.trimmingCharacters(in: .whitespaces), !n.isEmpty, n != e.module { return n }
+        return e.module
+    }
+
+    private var toolbar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(p.textTertiary)
+                TextField("搜索日志...", text: $search)
+                    .font(.system(size: 13)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                if !search.isEmpty {
+                    Button { search = "" } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 13)).foregroundStyle(p.textTertiary)
+                    }.buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(p.card, in: RoundedRectangle(cornerRadius: 8))
+            .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(p.separator) }
+
+            HStack(spacing: 8) {
+                Button { sourcesOpen.toggle() } label: {
+                    pillLabel("来源", trailing: "全部 \(modules.count)")
+                }.buttonStyle(.plain)
+                .popover(isPresented: $sourcesOpen) { sourcesPanel }
+
+                Button { filterOpen = true } label: {
+                    pillLabel("筛选", trailing: levelFilter == .all ? "全部级别" : "\(LogLevels.short(levelFilter.rawValue))＋")
+                }.buttonStyle(.plain)
+
+                Spacer()
+
+                Button { autoFollow.toggle() } label: {
+                    pillLabel(autoFollow ? "暂停跟随" : "跟随最新", icon: autoFollow ? "pause.fill" : "play.fill")
+                }.buttonStyle(.plain)
+
+                iconButton("square.and.arrow.up") { exportURL = makeExportFile() }
+                    .disabled(filtered.isEmpty)
+                iconButton("trash") { logs?.clear() }
+                    .disabled(allEntries.isEmpty)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
 
-    private func statusDot(_ t: String, _ c: Color) -> some View {
+    private func pillLabel(_ title: String, trailing: String? = nil, icon: String? = nil) -> some View {
         HStack(spacing: 5) {
-            Circle().fill(c).frame(width: 7, height: 7)
-            Text(t).font(.system(size: 12, weight: .medium)).foregroundStyle(c)
+            if let icon { Image(systemName: icon).font(.system(size: 11, weight: .semibold)) }
+            Text(title).font(.system(size: 12, weight: .medium))
+            if let trailing { Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary) }
         }
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(c.opacity(0.12), in: .capsule)
+        .foregroundStyle(p.text)
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(p.card, in: RoundedRectangle(cornerRadius: 8))
+        .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(p.separator) }
     }
 
-    @ViewBuilder
-    private func content(_ logs: LogsClient) -> some View {
+    private func iconButton(_ name: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name).font(.system(size: 13))
+                .foregroundStyle(p.text)
+                .frame(width: 32, height: 32)
+                .background(p.card, in: RoundedRectangle(cornerRadius: 8))
+                .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(p.separator) }
+        }.buttonStyle(.plain)
+    }
+
+    private func statusLine(_ logs: LogsClient) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(logs.status == .ready ? p.green : .red).frame(width: 7, height: 7)
+            Text(logs.status == .ready ? "已连接" : "未连接").font(.system(size: 11)).foregroundStyle(p.text)
+            Text("\(filtered.count) / \(allEntries.count) 条")
+                .font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, 16).padding(.bottom, 6)
+    }
+
+    private func terminal(_ logs: LogsClient) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if filtered.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 36, weight: .light)).foregroundStyle(p.textTertiary)
-                            Text(logs.status == .ready ? "暂无日志" : "正在连接日志流…")
-                                .font(.system(size: 14)).foregroundStyle(p.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity).padding(.top, 70)
+                        Text("暂无日志数据")
+                            .font(.system(size: fontSize.point, design: .monospaced))
+                            .foregroundStyle(Color(hex: 0x6B7280))
+                            .frame(maxWidth: .infinity).padding(.vertical, 32)
+                    } else {
+                        ForEach(filtered) { e in row(e).id(e.id) }
                     }
-                    ForEach(filtered) { e in
-                        row(e)
-                        Divider().overlay(p.separator.opacity(0.6))
-                    }
-                    Color.clear.frame(height: 1).id("log-end")
+                    Color.clear.frame(height: 1).id("bottom")
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 90)
+                .padding(.horizontal, 10).padding(.vertical, 8)
             }
+            .background(Color(hex: 0x211607))
             .onChange(of: filtered.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo("log-end", anchor: .bottom) }
+                guard autoFollow else { return }
+                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo("bottom", anchor: .bottom) }
             }
         }
+        .background(Color(hex: 0x633312))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(Color(hex: 0x24170F), lineWidth: 1) }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 84)
     }
 
     private func row(_ e: LogEntry) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(e.clock)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(p.textTertiary)
-                .frame(width: 58, alignment: .leading)
-            Text(e.level)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundStyle(levelColor(e.level))
-                .frame(width: 56, alignment: .leading)
-            VStack(alignment: .leading, spacing: 1) {
-                if !e.module.isEmpty {
-                    Text(e.module)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(p.textSecondary)
-                        .lineLimit(1)
-                }
-                Text(e.message)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(p.text)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+        let moduleColor = Color(hexString: e.moduleColor) ?? Color(hex: 0x22D3EE)
+        let moduleBold = e.moduleBold ?? false
+        return VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 8) {
+                Text(shortTimestamp(e.timestamp))
+                    .font(.system(size: fontSize.point, design: .monospaced)).foregroundStyle(Color(hex: 0x9CA3AF))
+                Text("[\(LogLevels.short(e.level))]")
+                    .font(.system(size: fontSize.point, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(LogLevels.color(e.level))
             }
-            Spacer(minLength: 0)
+            Text(displayModule(e))
+                .font(.system(size: fontSize.point, weight: moduleBold ? .bold : .regular, design: .monospaced))
+                .foregroundStyle(moduleColor).lineLimit(1)
+            Text(e.message)
+                .font(.system(size: fontSize.point, design: .monospaced))
+                .foregroundStyle(Color(hex: 0xD1D5DB))
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, lineSpacing / 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func levelColor(_ level: String) -> Color {
-        switch level {
-        case "ERROR", "CRITICAL": return .red
-        case "WARNING":           return p.orange
-        case "DEBUG":             return p.textTertiary
-        default:                  return p.green
+    private func shortTimestamp(_ s: String) -> String {
+        let t = s.trimmingCharacters(in: .whitespaces)
+        if t.count >= 19 {
+            let i = t.index(t.startIndex, offsetBy: 5)
+            var rest = String(t[i...])
+            if rest.hasPrefix("T") { rest = " " + rest.dropFirst() }
+            return rest
+        }
+        return s
+    }
+
+    private var sourcesPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("来源（\(modules.count)）").font(.system(size: 13, weight: .semibold))
+            if modules.isEmpty {
+                Text("暂无来源").font(.system(size: 12)).foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(modules) { m in
+                            Text(m.name).font(.system(size: 12, design: .monospaced)).lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 260, alignment: .leading)
+    }
+
+    private var filterSheet: some View {
+        NavigationStack {
+            Form {
+                Section("级别") {
+                    Picker("最低级别", selection: $levelFilterRaw) {
+                        ForEach(LevelFilter.allCases, id: \.rawValue) { f in Text(f.label).tag(f.rawValue) }
+                    }
+                }
+                Section("显示") {
+                    Picker("字号", selection: $fontRaw) {
+                        ForEach(LogFontSize.allCases, id: \.rawValue) { s in Text(s.label).tag(s.rawValue) }
+                    }.pickerStyle(.segmented)
+                    VStack(alignment: .leading) {
+                        HStack { Text("行距"); Spacer(); Text("\(Int(lineSpacing))px").foregroundStyle(.secondary) }
+                        Slider(value: $lineSpacing, in: 0...12, step: 2)
+                    }
+                    Toggle("自动跟随最新", isOn: $autoFollow)
+                }
+                Section {
+                    Button("重置筛选", role: .destructive) { search = ""; levelFilterRaw = "INFO" }
+                }
+            }
+            .navigationTitle("筛选")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { filterOpen = false } } }
+        }
+    }
+
+    private func makeExportFile() -> URL? {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd-HHmmss"
+        let name = "logs-\(df.string(from: Date())).txt"
+        let text = filtered.map { e in
+            let lvl = e.level.padding(toLength: max(8, e.level.count), withPad: " ", startingAt: 0)
+            return "\(e.timestamp) [\(lvl)] [\(e.module)] \(e.message)"
+        }.joined(separator: "\n")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        do { try text.data(using: .utf8)?.write(to: url); return url } catch { return nil }
+    }
+}
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
+
+extension Color {
+    /// Parse "#RRGGBB" / "RRGGBB" / "#RRGGBBAA" from the panel's moduleColor.
+    init?(hexString: String?) {
+        guard var s = hexString?.trimmingCharacters(in: .whitespaces), !s.isEmpty else { return nil }
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6 || s.count == 8, let v = UInt32(s, radix: 16) else { return nil }
+        if s.count == 8 {
+            self = Color(hex: v >> 8, alpha: Double(v & 0xFF) / 255)
+        } else {
+            self = Color(hex: v)
         }
     }
 }
