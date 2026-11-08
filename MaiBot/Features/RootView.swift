@@ -215,6 +215,9 @@ struct ChatView: View {
                 case .failed(let m):
                     statusDot("连接失败", .red).help(m)
                 }
+                if case .ready = chat.status {
+                    Text(chat.peerName).font(.system(size: 13, weight: .medium)).foregroundStyle(p.text).lineLimit(1)
+                }
             }
             Spacer()
             if case .failed = chat?.status {
