@@ -44,7 +44,7 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "高级工具", items: [
                 ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
-                ManagementItem(icon: "arrow.left.arrow.right", title: "数据传输", route: .other("数据传输")),
+                ManagementItem(icon: "arrow.left.arrow.right", title: "数据传输", route: .files),
             ]),
             ManagementGroup(title: "运行日志", items: [
                 ManagementItem(icon: "doc.text", title: "日志", route: .logs),
