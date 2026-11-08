@@ -10,57 +10,112 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SCHEME: MaiBot
+  PROJECT: MaiBot.xcodeproj
+
 jobs:
-  build:
-    name: Build on iOS Simulator
+  # ---------------------------------------------------------------- simulator
+  simulator:
+    name: Build (simulator)
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Show available Xcode versions
-        run: |
-          echo "--- /Applications ---"
-          ls -1 /Applications | grep -i xcode || true
-          xcodebuild -version
-          xcodebuild -showsdks | sed -n '1,40p'
 
       - name: Select newest Xcode
         run: |
           set -euo pipefail
           LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "${LATEST:-}" ]; then
-            echo "Selecting $LATEST"
-            sudo xcode-select -switch "$LATEST/Contents/Developer"
-          fi
+          if [ -n "${LATEST:-}" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
           xcodebuild -version
+          xcodebuild -showsdks | grep -i "iOS " | head -5
 
       - name: Install XcodeGen
-        run: |
-          command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
-          xcodegen --version
+        run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
 
-      - name: Generate Xcode project
+      - name: Generate project
         run: xcodegen generate
 
-      # pipefail + tee means the step fails exactly when xcodebuild does.
       - name: Build
         run: |
           set -o pipefail
           xcodebuild \
-            -project MaiBot.xcodeproj \
-            -scheme MaiBot \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee build.log
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Debug \
+            -sdk iphonesimulator -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee build-sim.log
 
-      - name: Upload build log
+      - name: Upload simulator log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build.log
+          name: build-sim-log
+          path: build-sim.log
+          retention-days: 7
+
+  # ---------------------------------------------------------------------- ipa
+  ipa:
+    name: Package unsigned IPA
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "${LATEST:-}" ]; then sudo xcode-select -switch "$LATEST/Contents/Developer"; fi
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      # Release archive for a real device, deliberately unsigned so it can be
+      # re-signed by the user (AltStore / Sideloadly / their own certificate).
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/MaiBot.xcarchive \
+            -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee archive.log
+
+      - name: Package Payload into .ipa
+        run: |
+          set -euo pipefail
+          APP="build/MaiBot.xcarchive/Products/Applications/MaiBot.app"
+          test -d "$APP" || { echo "app not found"; ls -R build/MaiBot.xcarchive/Products || true; exit 1; }
+          rm -rf build/payload
+          mkdir -p build/payload/Payload
+          cp -R "$APP" build/payload/Payload/
+          cd build/payload
+          zip -qry ../MaiBot-unsigned.ipa Payload
+          cd ../..
+          ls -lh build/MaiBot-unsigned.ipa
+          echo "--- size ---"
+          du -h build/MaiBot-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: MaiBot-unsigned-ipa
+          path: build/MaiBot-unsigned.ipa
+          retention-days: 30
+
+      - name: Upload archive log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-log
+          path: archive.log
           retention-days: 7
