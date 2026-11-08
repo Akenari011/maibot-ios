@@ -72,6 +72,7 @@ struct LogsView: View {
     @AppStorage("log.font") private var fontRaw = "xs"
     @AppStorage("log.lineSpacing") private var lineSpacing = 4.0
     @AppStorage("log.autoFollow") private var autoFollow = true
+    @AppStorage("log.hiddenModules") private var hiddenRaw = ""
 
     private var levelFilter: LevelFilter { LevelFilter(rawValue: levelFilterRaw) ?? .INFO }
     private var fontSize: LogFontSize { LogFontSize(rawValue: fontRaw) ?? .xs }
@@ -94,6 +95,7 @@ struct LogsView: View {
         .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) {
             if let url = exportURL { LogsShareSheet(items: [url]) }
         }
+        .onAppear { hiddenModules = Set(hiddenRaw.split(separator: ",").map(String.init)) }
         .task {
             if logs == nil {
                 let c = LogsClient(client: client)
@@ -282,8 +284,8 @@ struct LogsView: View {
             HStack {
                 Text("来源（\(modules.count - hiddenModules.count)/\(modules.count)）").font(.system(size: 13, weight: .semibold))
                 Spacer()
-                Button("全选") { hiddenModules.removeAll() }.font(.system(size: 11)).foregroundStyle(p.orange)
-                Button("全不选") { hiddenModules = Set(modules.map { $0.id }) }.font(.system(size: 11)).foregroundStyle(p.orange)
+                Button("全选") { hiddenModules.removeAll(); hiddenRaw = "" }.font(.system(size: 11)).foregroundStyle(p.orange)
+                Button("全不选") { hiddenModules = Set(modules.map { $0.id }); hiddenRaw = modules.map { $0.id }.joined(separator: ",") }.font(.system(size: 11)).foregroundStyle(p.orange)
             }
             if modules.isEmpty {
                 Text("暂无来源").font(.system(size: 12)).foregroundStyle(.secondary)
@@ -312,6 +314,7 @@ struct LogsView: View {
 
     private func toggle(_ id: String) {
         if hiddenModules.contains(id) { hiddenModules.remove(id) } else { hiddenModules.insert(id) }
+        hiddenRaw = hiddenModules.joined(separator: ",")
     }
 
     private var filterSheet: some View {
