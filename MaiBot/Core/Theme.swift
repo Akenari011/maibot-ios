@@ -231,11 +231,12 @@ extension Palette {
 struct ThemedRoot: View {
     @AppStorage("theme.mode") private var mode = "system"
     @Environment(\.colorScheme) private var systemScheme
-    private var isDark: Bool { mode == "dark" || (mode == "system" && systemScheme == .dark) }
+    private var effective: String { TestSupport.forcedTheme ?? mode }
+    private var isDark: Bool { effective == "dark" || (effective == "system" && systemScheme == .dark) }
     var body: some View {
         RootView()
             .environment(\.palette, isDark ? .dark : .panel)
             .tint(isDark ? Palette.dark.orange : Palette.panel.orange)
-            .preferredColorScheme(mode == "system" ? nil : (mode == "dark" ? .dark : .light))
+            .preferredColorScheme(effective == "system" ? nil : (effective == "dark" ? .dark : .light))
     }
 }
