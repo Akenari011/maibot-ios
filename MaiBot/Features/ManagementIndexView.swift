@@ -91,6 +91,12 @@ struct ManagementIndexView: View {
                                             .frame(width: 24)
                                             .foregroundStyle(p.text)
                                         Text(item.title).font(.system(size: 16)).foregroundStyle(p.text)
+                                        if case .other = item.route {
+                                            Text("即将").font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(p.textTertiary)
+                                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                                .background(p.iconCircle, in: Capsule())
+                                        }
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .font(.system(size: 14, weight: .semibold))
