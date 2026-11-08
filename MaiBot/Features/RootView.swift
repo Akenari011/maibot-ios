@@ -26,21 +26,26 @@ struct RootView: View {
 }
 
 enum AppTab: Hashable { case home, chat, manage }
-enum HomeRoute: Hashable { case activity, models, settings }
+enum HomeRoute: Hashable { case activity, models, settings, logs }
 enum ManageRoute: Hashable { case settings }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
     @State private var tab: AppTab
-    @State private var homePath = NavigationPath()
+    @State private var homePath: NavigationPath
     @State private var managePath = NavigationPath()
 
     init() {
+        var hp = NavigationPath()
+        let start: AppTab
         switch TestSupport.startTab {
-        case "chat":   _tab = State(initialValue: .chat)
-        case "manage": _tab = State(initialValue: .manage)
-        default:       _tab = State(initialValue: .home)
+        case "chat":   start = .chat
+        case "manage": start = .manage
+        case "logs":   start = .home; hp.append(HomeRoute.logs)
+        default:       start = .home
         }
+        _tab = State(initialValue: start)
+        _homePath = State(initialValue: hp)
     }
 
     var body: some View {
@@ -55,6 +60,7 @@ struct MainShell: View {
                                 case .activity: ActivityView()
                                 case .models:   ModelListView()
                                 case .settings: SettingsView()
+                                case .logs:     LogsView()
                                 }
                             }
                     }
@@ -231,22 +237,34 @@ struct ChatView: View {
         }
     }
 
+    @ViewBuilder
     private func bubble(_ m: ChatMessage) -> some View {
-        HStack {
-            if m.role == .user { Spacer(minLength: 48) }
-            Text(m.text)
-                .font(.system(size: 15))
-                .foregroundStyle(m.role == .user ? .white : p.text)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(m.role == .user ? p.orange : p.card,
-                            in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay {
-                    if m.role == .bot {
-                        RoundedRectangle(cornerRadius: 16).strokeBorder(p.separator)
+        if m.role == .system {
+            HStack {
+                Spacer()
+                Text(m.text)
+                    .font(.system(size: 12))
+                    .foregroundStyle(p.textSecondary)
+                    .multilineTextAlignment(.center)
+                Spacer()
+            }
+        } else {
+            HStack {
+                if m.role == .user { Spacer(minLength: 48) }
+                Text(m.text)
+                    .font(.system(size: 15))
+                    .foregroundStyle(m.role == .user ? .white : p.text)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(m.role == .user ? p.orange : p.card,
+                                in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay {
+                        if m.role == .bot {
+                            RoundedRectangle(cornerRadius: 16).strokeBorder(p.separator)
+                        }
                     }
-                }
-                .textSelection(.enabled)
-            if m.role == .bot { Spacer(minLength: 48) }
+                    .textSelection(.enabled)
+                if m.role == .bot { Spacer(minLength: 48) }
+            }
         }
     }
 

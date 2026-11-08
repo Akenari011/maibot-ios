@@ -83,14 +83,17 @@ MaiBot/
 │   ├── Theme.swift          配色、玻璃卡片、状态胶囊
 │   ├── Models.swift         Bot / HostMode / Settings
 │   ├── APIClient.swift      URLSession 封装
+│   ├── ChatClient.swift     原生聊天（/api/webui/ws）
+│   ├── LogsClient.swift     实时日志（订阅 logs/main）
 │   └── AuthStore.swift      Keychain 会话 + cookie 抓取
 └── Features/
     ├── RootView.swift       登录态路由 + 标签栏
     ├── LoginView.swift      WKWebView + App-Bound Domains
     ├── DashboardView.swift
     ├── BotsView.swift
-    ├── LogsView.swift
-    ├── ConfigView.swift
+    ├── ActivityView.swift
+    ├── ModelListView.swift
+    ├── LogsView.swift         真实日志页（统一 WS 订阅 logs/main）
     └── SettingsView.swift
 ```
 

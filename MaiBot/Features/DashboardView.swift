@@ -116,7 +116,7 @@ struct DashboardView: View {
     private var gridCard: some View {
         Panel(padding: 18) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
-                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.text", label: "查看日志") }
+                NavigationLink(value: HomeRoute.logs) { GridTile(icon: "doc.text", label: "查看日志") }
                     .buttonStyle(.plain)
                 NavigationLink(value: HomeRoute.settings) { GridTile(icon: "gearshape", label: "外观设置") }
                     .buttonStyle(.plain)

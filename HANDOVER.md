@@ -15,9 +15,10 @@ MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Lbcheng1145/m
 | 首页（活动/六宫格/存储/统计/趋势/Token/Prompt缓存/资讯） | ✅ 已完成，接真实 API，模拟器截图验证 |
 | 机器人管理（统计/新建/重命名/克隆/删除/启停/切换） | ✅ 已完成，接真实 API，截图验证 |
 | 活动流 / 模型列表 / 设置 | ✅ 已完成 |
+| 日志（实时） | ✅ 已完成，统一 WS 订阅 logs/main，snapshot + entry |
 | 登录 | WKWebView + App-Bound Domains + Safari UA |
-| 原生聊天（WebSocket） | ✅ 握手已验证（显示「已连接」），收发做最后确认 |
-| CI 模拟器截图 | ✅ 已验证，三页正常渲染 |
+| 原生聊天（WebSocket） | ✅ 已确认收发：发送 → user_message 回声 + typing + **bot_message** 回复 |
+| CI 模拟器截图 | ✅ 已验证，home / manage / chat / logs 四页正常渲染 |
 
 ## 3. 环境
 
@@ -50,13 +51,40 @@ GET   .../proxy/api/webui/config/model
 `gm-sso`（网关层）+ `maibot_host_session_*`（面板层，从任意 API 响应的 Set-Cookie 抓，`APIClient.capturePanel` 已实现）。
 
 ```jsonc
-{"op":"call","id":"c1","domain":"chat","method":"session.open","session":"<uuid>"}
+{"op":"call","id":"c1","domain":"chat","method":"session.open","session":"<uuid>","data":{"user_name":"我"}}
 {"op":"call","id":"c2","domain":"chat","method":"message.send","session":"<uuid>","data":{"content":"hi","user_name":"我"}}
 {"op":"ping"}
-// 回复： {"op":"event","domain":"chat","event":"<name>","data":{"content":"..."}}
 ```
 
-待细化：`event` 的具体名称；`ChatClient.appendBot` 目前对任何带 content 的 event 追加。
+**事件名已确认**（源码 `src/webui/routers/websocket/unified.py` + `chat/service.py` + `chat/message_receive/uni_message_sender.py`，
+并用真实 WS 端到端复现过）。`domain:"chat"` 下按 `data.type` 区分：
+
+| event/type | 含义 | 处理 |
+| --- | --- | --- |
+| `session_info` | 会话元信息 | 忽略 |
+| `history` | `data.messages`：`[{type:"bot"|"user", content, segments?}]` | 打开会话时回填 |
+| `system` | `data.content` 欢迎语/提示 | 居中提示气泡 |
+| `user_message` | 用户消息；自己的会回声，`data.origin` 以 `:<clientSessionId>` 结尾 | 自己的回声跳过，别人发的显示 |
+| `typing` | `data.is_typing` | 控制「正在输入」 |
+| **`bot_message`** | **机器人回复**；`data.content`，富文本另有 `data.segments` | 追加机器人气泡 |
+| `error` | `data.content` | 错误提示 |
+
+要点：**只有 `bot_message` 才是机器人回复**（别再对「任何带 content 的 event」追加，否则自己的
+`user_message` 回声会被当成机器人消息重复显示）。
+
+## 5.1 日志 WebSocket（真实日志页）
+
+浏览器日志页**不是**用独立的 `/ws/logs`，而是在同一条 `/api/webui/ws` 上订阅：
+
+```jsonc
+{"op":"subscribe","id":"l1","domain":"logs","topic":"main","data":{"replay":200}}
+// -> {"op":"response","ok":true,"data":{"domain":"logs","topic":"main"}}
+// -> {"op":"event","domain":"logs","event":"snapshot","data":{"entries":[{id,timestamp,level,module,message,...}]}}
+// -> {"op":"event","domain":"logs","event":"entry","data":{"entry":{...}}}   // 之后每条实时日志
+```
+
+`LogsClient` 就是这么实现的（同一套 cookie 握手），`LogsView` 展示并按 ERROR/WARNING 过滤。
+（`/ws/logs` 存在但只回放历史、不接实时广播，前端未使用，iOS 也不应使用。）
 
 ## 6. 怎么测试（重要）
 
@@ -73,9 +101,8 @@ GET   .../proxy/api/webui/config/model
 ## 7. 已知问题 / 红线
 
 问题：
-1. 聊天回复事件名待确认（见第 5 节）。
-2. `deploymentTarget` = iOS 26.0，只能 iOS 26+。
-3. 未签名 IPA，需自签（Sideloadly / AltStore）。
+1. `deploymentTarget` = iOS 26.0，只能 iOS 26+。
+2. 未签名 IPA，需自签（Sideloadly / AltStore）。
 
 红线：
 - 不要动 `/opt/dsh-auth/data/session.key`（一改全部会话失效）。
@@ -88,14 +115,15 @@ GET   .../proxy/api/webui/config/model
 ```
 MaiBot/
 ├── MaiBotApp.swift / Info.plist / MaiBot.entitlements
-├── Core/  Theme, Models, APIClient, AuthStore, ChatClient, TestSupport
+├── Core/  Theme, Models, APIClient, AuthStore, ChatClient, LogsClient, TestSupport
 └── Features/  RootView(含原生聊天), LoginView, DashboardView, BotsView,
-              ActivityView, ModelListView, SettingsView
+              ActivityView, ModelListView, SettingsView, LogsView
 ```
 
 ## 9. 给新会话的第一句话（直接粘贴）
 
 > 接手 MaiBot iOS（https://github.com/Lbcheng1145/maibot-ios），先读仓库根目录 HANDOVER.md。
-> 当前进度：首页/机器人已在 CI 模拟器截图验证；原生聊天 WS 握手已通，还差确认回复事件名。
-> 下一步：跑一次 Actions，下载 app-screenshots artifact，确认三个标签页；
-> 再验证聊天能收发。接口和测试方法都在 HANDOVER 里，不要改 SSO 网关。
+> 当前进度：首页/机器人/活动流/模型/设置已完成并在 CI 模拟器截图验证；原生聊天已确认收发
+> （机器人回复事件名 = bot_message）；真实日志页已用统一 WS 订阅 logs/main 实现。
+> 下一步：跑一次 Actions，下载 app-screenshots artifact 看 home/manage/chat/logs 四页，
+> chat 页应能看到机器人回复气泡。接口与协议见 HANDOVER §5/§5.1，不要改 SSO 网关。
