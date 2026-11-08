@@ -30,27 +30,31 @@ struct RootView: View {
 
 // MARK: - Main shell
 
+/// Named AppTab, not Tab: SwiftUI already declares a `Tab` type and shadowing
+/// it makes Tab("title", systemImage:value:) unconstructable.
+enum AppTab: Hashable {
+    case overview, bots, logs, config, settings
+}
+
 struct MainTabView: View {
     @Environment(\.palette) private var p
-    @State private var selection: Tab = .overview
-
-    enum Tab: Hashable { case overview, bots, logs, config, settings }
+    @State private var selection: AppTab = .overview
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("概览", systemImage: "square.grid.2x2", value: Tab.overview) {
+            Tab("概览", systemImage: "square.grid.2x2", value: AppTab.overview) {
                 DashboardView()
             }
-            Tab("机器人", systemImage: "cpu", value: Tab.bots) {
+            Tab("机器人", systemImage: "cpu", value: AppTab.bots) {
                 BotsView()
             }
-            Tab("日志", systemImage: "text.alignleft", value: Tab.logs) {
+            Tab("日志", systemImage: "text.alignleft", value: AppTab.logs) {
                 LogsView()
             }
-            Tab("配置", systemImage: "slider.horizontal.3", value: Tab.config) {
+            Tab("配置", systemImage: "slider.horizontal.3", value: AppTab.config) {
                 ConfigView()
             }
-            Tab("设置", systemImage: "gearshape", value: Tab.settings) {
+            Tab("设置", systemImage: "gearshape", value: AppTab.settings) {
                 SettingsView()
             }
         }
