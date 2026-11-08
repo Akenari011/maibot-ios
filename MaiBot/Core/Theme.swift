@@ -230,13 +230,14 @@ extension Palette {
 
 struct ThemedRoot: View {
     @AppStorage("theme.mode") private var mode = "system"
+    @AppStorage("theme.accent") private var accentHex = "E06F06"
     @Environment(\.colorScheme) private var systemScheme
     private var effective: String { TestSupport.forcedTheme ?? mode }
     private var isDark: Bool { effective == "dark" || (effective == "system" && systemScheme == .dark) }
     var body: some View {
         RootView()
             .environment(\.palette, isDark ? .dark : .panel)
-            .tint(isDark ? Palette.dark.orange : Palette.panel.orange)
+            .tint(Color(hexString: accentHex) ?? (isDark ? Palette.dark.orange : Palette.panel.orange))
             .preferredColorScheme(effective == "system" ? nil : (effective == "dark" ? .dark : .light))
     }
 }

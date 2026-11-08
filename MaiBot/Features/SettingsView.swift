@@ -32,6 +32,7 @@ struct SettingsView: View {
     @State private var notice: String?
     @State private var confirmReset = false
     @AppStorage("theme.mode") private var themeMode = "system"
+    @AppStorage("theme.accent") private var accentHex = "E06F06"
 
     var body: some View {
         ScrollView {
@@ -138,9 +139,11 @@ struct SettingsView: View {
                 }.pickerStyle(.segmented)
                 Text("强调色").font(.system(size: 13, weight: .semibold)).foregroundStyle(p.textSecondary).padding(.top, 4)
                 HStack(spacing: 10) {
-                    ForEach([0xE06F06, 0x2EB37C, 0xEB8A2E, 0xA24FD9, 0xE04F8A], id: \.self) { hex in
-                        Circle().fill(Color(hex: UInt32(hex))).frame(width: 26, height: 26)
-                            .overlay { Circle().strokeBorder(hex == 0xE06F06 ? p.text : .clear, lineWidth: 2) }
+                    ForEach(["E06F06", "2EB37C", "EB8A2E", "A24FD9", "E04F8A"], id: \.self) { hex in
+                        Button { accentHex = hex } label: {
+                            Circle().fill(Color(hexString: hex) ?? p.orange).frame(width: 26, height: 26)
+                                .overlay { Circle().strokeBorder(accentHex == hex ? p.text : .clear, lineWidth: 2) }
+                        }.buttonStyle(.plain)
                     }
                 }
             }
