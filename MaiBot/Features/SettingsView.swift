@@ -196,7 +196,9 @@ struct SettingsView: View {
         card {
             VStack(alignment: .leading, spacing: 6) {
                 Text("MaiBot 面板 · iOS").font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text)
-                Text("非官方客户端 · SwiftUI · 1.0").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+                let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                Text("非官方客户端 · SwiftUI · v\(v) (\(b))").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 Text("与网页版 dashboard 对齐重构中").font(.system(size: 12)).foregroundStyle(p.textTertiary)
             }
         }
