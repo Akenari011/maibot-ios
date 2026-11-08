@@ -41,7 +41,7 @@ struct MainShell: View {
         var mp = NavigationPath()
         let start: AppTab
         switch TestSupport.startTab {
-        case "chat":     start = .chat
+        case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
         case "settings": start = .home; hp.append(HomeRoute.settings)
