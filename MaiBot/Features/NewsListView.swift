@@ -43,7 +43,7 @@ struct NewsListView: View {
         do {
             let mode = try await client.hostMode()
             guard let id = mode.selectedBotID else { return }
-            items = try await client.news(botID: id).items
+            items = try await client.news(botID: id)
             error = nil
         } catch APIError.unauthorized { await auth.signOut(client: client) }
         catch { self.error = error.localizedDescription }
