@@ -199,3 +199,11 @@ MaiBot/
 - 按压反馈：首页宫格、管理菜单行、聊天列表行使用 PressableStyle（0.12s ease-out 缩放/透明度）。
 - 触感：底部 Tab 与搜索按钮加 UIImpactFeedbackGenerator(.soft)。
 - 回归截图：13664108646（19 tab，动画改动无副作用）。
+
+## 17. 资源/插件写能力
+
+- 表情详情：注册 / 禁用 / 删除（emoji/{id}/register、/ban、DELETE）。
+- 表达/黑话：新增（全局，POST expression/ 、jargon/）、删除（DELETE /{id}）。
+- 插件详情：配置 / 原始 / Schema 三视图。
+- 聊天管理：私聊暂停回复开关、发言频率展示。
+- 适配器：可设置/修改配置文件路径。
