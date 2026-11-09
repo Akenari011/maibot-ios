@@ -136,7 +136,7 @@ struct PlaceholderPage: View {
     let title: String
 
     private var webURL: URL? {
-        let map = ["插件市场": "/plugins", "推理过程": "/reasoning-process",
+        let map = ["插件市场": "/plugin-mirrors", "推理过程": "/reasoning-process",
                    "适配器设置": "/adapter-management", "学习": "/resource/learning",
                    "长期记忆": "/resource/knowledge-base"]
         guard let path = map[title] else { return nil }
