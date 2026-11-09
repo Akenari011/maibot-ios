@@ -54,6 +54,8 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
                 ManagementItem(icon: "bubble.left.and.text.bubble.right", title: "聊天管理", route: .chatManagement),
                 ManagementItem(icon: "arrow.left.arrow.right", title: "数据传输", route: .files),
+                ManagementItem(icon: "tray.and.arrow.down", title: "数据迁移", route: .dataTransfer),
+                ManagementItem(icon: "questionmark.bubble", title: "帮助历史", route: .helpHistory),
             ]),
             ManagementGroup(title: "运行日志", items: [
                 ManagementItem(icon: "doc.text", title: "日志", route: .logs),
