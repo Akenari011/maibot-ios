@@ -43,8 +43,8 @@ final class APIClient {
         let saved = UserDefaults.standard.string(forKey: Self.baseKey)
         baseURL = URL(string: saved ?? "https://maibot.galmaster.online")!
         let cfg = URLSessionConfiguration.ephemeral
-        cfg.timeoutIntervalForRequest = 20
-        cfg.timeoutIntervalForResource = 40
+        cfg.timeoutIntervalForRequest = 30
+        cfg.timeoutIntervalForResource = 120
         cfg.httpShouldSetCookies = false
         cfg.httpCookieAcceptPolicy = .never
         cfg.waitsForConnectivity = true
@@ -59,11 +59,12 @@ final class APIClient {
             : .unauthorized
     }
 
-    private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil) throws -> URLRequest {
+    private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil, timeout: TimeInterval? = nil) throws -> URLRequest {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw APIError.http(0, "无效的地址")
         }
         var req = URLRequest(url: url)
+        if let timeout { req.timeoutInterval = timeout }
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil {
@@ -195,8 +196,8 @@ final class APIClient {
         return r.items
     }
 
-    func getRaw(_ path: String) async throws -> Any {
-        let req = try makeRequest(path)
+    func getRaw(_ path: String, timeout: TimeInterval? = nil) async throws -> Any {
+        let req = try makeRequest(path, timeout: timeout)
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
         capturePanel(http)
@@ -212,14 +213,23 @@ final class APIClient {
     func adapterConfigPath(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/adapter-config/path")) }
     func reasoningStages(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/stages")) }
     func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
-    func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace")) }
+    func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace"), timeout: 60) }
     func togglePlugin(botID: String, pluginID: String) async throws -> Any {
         let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
         let data = try await sendJSON("POST", proxy(botID, "plugins/config/\(enc)/toggle"), nil)
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
     func learnText(botID: String, kind: String, text: String) async throws -> Any {
-        let data = try await sendJSON("POST", proxy(botID, "learning/text/extract"), ["kind": kind, "text": text])
+        let req = try makeRequest(proxy(botID, "learning/text/extract"), method: "POST",
+                                  body: try JSONSerialization.data(withJSONObject: ["kind": kind, "text": text]),
+                                  timeout: 180)
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        capturePanel(http)
+        if http.statusCode == 401 { throw unauthorizedError(for: req.url?.path ?? "") }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+        }
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
     func adapterConfig(botID: String, path: String) async throws -> Any {
