@@ -8,7 +8,7 @@ struct PluginDetailView: View {
     @Environment(\.palette) private var p
     @Environment(\.dismiss) private var dismiss
     @State private var config: Any?
-    @State private var raw: Any?
+    @State private var rawConfig: Any?
     @State private var schema: Any?
     @State private var tab = 0
     @State private var error: String?
@@ -28,7 +28,7 @@ struct PluginDetailView: View {
                         Text("Schema").tag(2)
                     }.pickerStyle(.segmented)
                     if tab == 0, let config { Panel(padding: 12) { JSONValueView(key: nil, value: config) } }
-                    if tab == 1, let raw { Panel(padding: 12) { JSONValueView(key: nil, value: raw) } }
+                    if tab == 1, let rawConfig { Panel(padding: 12) { JSONValueView(key: nil, value: rawConfig) } }
                     if tab == 2, let schema { Panel(padding: 12) { JSONValueView(key: nil, value: schema) } }
                     Text("只读：插件配置编辑请在网页版进行。")
                         .font(.system(size: 11)).foregroundStyle(p.textTertiary)
@@ -50,7 +50,7 @@ struct PluginDetailView: View {
             if let d = raw as? [String: Any] {
                 config = d["config"] ?? d["data"] ?? d
             } else { config = raw }
-            raw = try? await client.pluginRaw(botID: id, pluginID: pluginID)
+            rawConfig = try? await client.pluginRaw(botID: id, pluginID: pluginID)
             schema = try? await client.pluginSchema(botID: id, pluginID: pluginID)
             error = nil
         } catch APIError.unauthorized { await auth.signOut(client: client) }
