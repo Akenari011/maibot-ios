@@ -31,7 +31,22 @@ struct ComputerView: View {
         .navigationTitle("电脑使用")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
-        .task { await load() }
+        .task {
+            await load()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3))
+                if Task.isCancelled { break }
+                await refreshFrame()
+            }
+        }
+    }
+
+    private func refreshFrame() async {
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            if let d = try? await client.computerFrame(botID: id), let img = UIImage(data: d) { frame = img }
+        } catch {}
     }
 
     private func load() async {
