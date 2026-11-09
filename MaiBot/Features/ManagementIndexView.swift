@@ -102,7 +102,7 @@ struct ManagementIndexView: View {
 
                 ForEach(filteredGroups) { g in
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(g.title).font(.system(size: 13)).foregroundStyle(p.textSecondary).padding(.leading, 4)
+                        Text(g.title).font(.system(size: 13)).foregroundStyle(p.textSecondary).padding(.leading, 16)
                         VStack(spacing: 0) {
                             ForEach(Array(g.items.enumerated()), id: \.element.id) { idx, item in
                                 NavigationLink(value: item.route) {
