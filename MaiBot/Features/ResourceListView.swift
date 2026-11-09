@@ -187,6 +187,7 @@ struct ResourceListView: View {
     @State private var f1 = ""
     @State private var f2 = ""
     @State private var saving = false
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView {
@@ -252,6 +253,14 @@ struct ResourceListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
+        .onChange(of: query) { _, _ in
+            searchTask?.cancel()
+            searchTask = Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+                await load(reset: true)
+            }
+        }
         .sheet(item: $selected) { it in ResourceDetailView(kind: kind, item: it, botID: botID) }
         .sheet(isPresented: $creating) { createSheet }
     }
