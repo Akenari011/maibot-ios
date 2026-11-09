@@ -242,7 +242,7 @@ struct NewsResponse: Codable {
         let publishedAt: String?
 
         enum CodingKeys: String, CodingKey {
-            case id, title, summary, source
+            case id, title, summary, content, source
             case publishedAt = "published_at"
         }
     }
