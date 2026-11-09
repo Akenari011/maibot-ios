@@ -101,98 +101,74 @@ struct PluginPageView: View {
         .task { await reload() }
     }
 
-    @ViewBuilder
-    private func render(_ n: [String: Any]) -> some View {
+    private func render(_ n: [String: Any]) -> AnyView {
         let type = (n["type"] as? String) ?? ""
         let label = (n["label"] as? String) ?? ""
         switch type {
         case "stack", "card", "tabs":
-            VStack(alignment: .leading, spacing: 8) {
+            return AnyView(VStack(alignment: .leading, spacing: 8) {
                 if !label.isEmpty { Text(label).font(.system(size: 12)).foregroundStyle(p.textSecondary) }
                 ForEach(Array(((n["children"] as? [[String: Any]]) ?? []).enumerated()), id: \.offset) { _, c in render(c) }
-            }
-            .padding(12).background(p.card, in: RoundedRectangle(cornerRadius: 12))
+            }.padding(12).background(p.card, in: RoundedRectangle(cornerRadius: 12)))
         case "grid":
-            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 10) {
+            return AnyView(LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 10) {
                 ForEach(Array(((n["children"] as? [[String: Any]]) ?? []).enumerated()), id: \.offset) { _, c in render(c) }
-            }
+            })
         case "collapsible":
-            DisclosureGroup {
+            return AnyView(DisclosureGroup {
                 ForEach(Array(((n["children"] as? [[String: Any]]) ?? []).enumerated()), id: \.offset) { _, c in render(c) }
-            } label: {
-                Text(label.isEmpty ? "详情" : label).font(.system(size: 13, weight: .medium)).foregroundStyle(p.text)
-            }
+            } label: { Text(label.isEmpty ? "详情" : label).font(.system(size: 13, weight: .medium)).foregroundStyle(p.text) })
         case "text":
-            Text(valueString(n["value"]))
+            return AnyView(Text(valueString(n["value"]))
                 .font(.system(size: 12, design: (n["format"] as? String) == "log" ? .monospaced : .default))
-                .foregroundStyle(p.textSecondary).fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(p.textSecondary).fixedSize(horizontal: false, vertical: true))
         case "stat":
-            VStack(alignment: .leading, spacing: 2) {
+            return AnyView(VStack(alignment: .leading, spacing: 2) {
                 if !label.isEmpty { Text(label).font(.system(size: 11)).foregroundStyle(p.textSecondary) }
                 Text(valueString(n["value"])).font(.system(size: 18, weight: .semibold)).foregroundStyle(p.text)
-            }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(maxWidth: .infinity, alignment: .leading))
         case "progress":
-            VStack(alignment: .leading, spacing: 3) {
+            let pct = (n["value"] as? Double) ?? Double((n["value"] as? Int) ?? 0)
+            return AnyView(VStack(alignment: .leading, spacing: 3) {
                 if !label.isEmpty { Text(label).font(.system(size: 11)).foregroundStyle(p.textSecondary) }
-                let pct = (n["value"] as? Double) ?? Double((n["value"] as? Int) ?? 0)
                 ProgressView(value: min(max(pct, 0), 100), total: 100).tint(p.orange)
-            }
+            })
         case "table":
-            tableNode(n)
+            return AnyView(tableNode(n))
         case "input", "date":
-            VStack(alignment: .leading, spacing: 3) {
+            let nm = (n["name"] as? String) ?? ""
+            return AnyView(VStack(alignment: .leading, spacing: 3) {
                 if !label.isEmpty { Text(label).font(.system(size: 11)).foregroundStyle(p.textSecondary) }
-                TextField("", text: Binding(get: { (values[(n["name"] as? String) ?? ""] as? String) ?? "" },
-                                           set: { values[(n["name"] as? String) ?? ""] = $0 }))
+                TextField("", text: Binding(get: { (values[nm] as? String) ?? "" }, set: { values[nm] = $0 }))
                     .font(.system(size: 13)).padding(8)
                     .background(p.card, in: RoundedRectangle(cornerRadius: 8))
                     .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(p.separator) }
-            }
+            })
         case "switch":
-            Toggle(label, isOn: Binding(get: { (values[(n["name"] as? String) ?? ""] as? Bool) ?? false },
-                                        set: { values[(n["name"] as? String) ?? ""] = $0 })).tint(p.orange).font(.system(size: 13))
+            let nm = (n["name"] as? String) ?? ""
+            return AnyView(Toggle(label, isOn: Binding(get: { (values[nm] as? Bool) ?? false }, set: { values[nm] = $0 }))
+                .tint(p.orange).font(.system(size: 13)))
         case "select":
+            let nm = (n["name"] as? String) ?? ""
             let opts = (n["options"] as? [[String: Any]]) ?? []
-            VStack(alignment: .leading, spacing: 3) {
+            return AnyView(VStack(alignment: .leading, spacing: 3) {
                 if !label.isEmpty { Text(label).font(.system(size: 11)).foregroundStyle(p.textSecondary) }
-                Picker(label, selection: Binding(get: { (values[(n["name"] as? String) ?? ""] as? String) ?? "" },
-                                                 set: { values[(n["name"] as? String) ?? ""] = $0 })) {
+                Picker(label, selection: Binding(get: { (values[nm] as? String) ?? "" }, set: { values[nm] = $0 })) {
                     ForEach(Array(opts.enumerated()), id: \.offset) { _, o in
                         Text((o["label"] as? String) ?? "").tag((o["value"] as? String) ?? "")
                     }
                 }.pickerStyle(.menu)
-            }
+            })
         case "button":
             let action = (n["action"] as? String) ?? ""
-            Button { Task { await invoke(action) } } label: {
+            return AnyView(Button { Task { await invoke(action) } } label: {
                 Text(label.isEmpty ? "操作" : label).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
                     .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
-            }.buttonStyle(.plain).disabled(busy)
+            }.buttonStyle(.plain).disabled(busy))
         default:
-            EmptyView()
+            return AnyView(EmptyView())
         }
     }
-
-    @ViewBuilder
-    private func tableNode(_ n: [String: Any]) -> some View {
-        let cols = (n["columns"] as? [[String: Any]]) ?? []
-        let rows = (n["value"] as? [String: Any]).flatMap { resolve($0) } as? [[String: Any]] ?? []
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(rows.prefix(50).enumerated()), id: \.offset) { _, row in
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(cols.enumerated()), id: \.offset) { _, c in
-                        let f = (c["field"] as? String) ?? ""
-                        HStack {
-                            Text((c["label"] as? String) ?? f).font(.system(size: 11)).foregroundStyle(p.textSecondary)
-                            Spacer()
-                            Text(row[f].map { "\($0)" } ?? "—").font(.system(size: 11, design: .monospaced)).foregroundStyle(p.text).lineLimit(1)
-                        }
-                    }
-                }.padding(8).background(p.card, in: RoundedRectangle(cornerRadius: 8))
-            }
-        }
-    }
-
     private func resolve(_ ref: [String: Any]) -> Any? {
         guard let source = ref["source"] as? String, let field = ref["field"] as? String else { return nil }
         var cur: Any? = queries[source]
