@@ -59,7 +59,7 @@ struct ActivityView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("活动流")
+        .navigationTitle("回复日志")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await load() }
         .task { await load() }
