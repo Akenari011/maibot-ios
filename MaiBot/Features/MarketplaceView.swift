@@ -12,6 +12,7 @@ struct MarketplaceView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(\.palette) private var p
     @State private var rows: [MarketRow] = []
+    @State private var query = ""
     @State private var rawFallback: Any?
     @State private var error: String?
     @State private var loading = true
@@ -22,8 +23,13 @@ struct MarketplaceView: View {
                 if loading { ProgressView().frame(maxWidth: .infinity).padding(.top, 40) }
                 if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if !rows.isEmpty {
-                    Text("市场插件（\(rows.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
-                    ForEach(rows) { r in
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                        TextField("搜索市场插件…", text: $query).font(.system(size: 14)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    }
+                    .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
+                    Text("市场插件（共 \(rows.count)，显示 \(min(filtered.count, 200))）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                    ForEach(filtered.prefix(200)) { r in
                         Panel(padding: 14) {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
@@ -48,6 +54,12 @@ struct MarketplaceView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    private var filtered: [MarketRow] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return rows }
+        return rows.filter { $0.name.lowercased().contains(q) || $0.desc.lowercased().contains(q) || $0.id.lowercased().contains(q) }
     }
 
     private func load() async {
