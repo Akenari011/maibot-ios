@@ -148,6 +148,8 @@ struct MainShell: View {
                     }
                 }
             }
+            .transition(.opacity)
+            .animation(reduceMotion ? nil : Motion.pageTransition, value: tab)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             floatingBar
