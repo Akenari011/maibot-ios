@@ -43,7 +43,8 @@ struct MainShell: View {
         let start: AppTab
         // TEMP: capture new resource pages within one screenshot run.
         let remap: [String: String] = ["home": "emoji", "manage": "expression",
-                                       "chat": "jargon", "logs": "person"]
+                                       "chat": "jargon", "logs": "person",
+                                       "settings": "chatManagement"]
         let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
         switch effectiveTab {
         case "chat", "room": start = .chat
@@ -66,6 +67,7 @@ struct MainShell: View {
         case "expression": start = .manage; mp.append(ManageRoute.expression)
         case "jargon":   start = .manage; mp.append(ManageRoute.jargon)
         case "person":   start = .manage; mp.append(ManageRoute.person)
+        case "chatManagement": start = .manage; mp.append(ManageRoute.chatManagement)
         default:         start = .home
         }
         _tab = State(initialValue: start)
