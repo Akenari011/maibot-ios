@@ -41,7 +41,11 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        switch TestSupport.startTab {
+        // TEMP: capture the four late tabs within the 15-minute screenshot budget.
+        let remap: [String: String] = ["home": "adapter", "manage": "reasoning",
+                                       "chat": "market", "logs": "learning"]
+        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        switch effectiveTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
