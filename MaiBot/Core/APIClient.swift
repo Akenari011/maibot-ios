@@ -229,6 +229,9 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func computerStatus(botID: String) async throws -> Any { try await getRaw(proxy(botID, "computer")) }
+    func computerFrame(botID: String) async throws -> Data { try await getData(proxy(botID, "computer/frame")) }
+
     func testProvider(botID: String, name: String) async throws -> Any {
         let enc = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         let data = try await sendJSON("POST", proxy(botID, "model/test-connection-by-name?provider_name=\(enc)"), nil)

@@ -130,7 +130,7 @@ struct MainShell: View {
                                 case .person:    ResourceListView(kind: .person)
                                 case .chatManagement: ChatManagementView()
                                 case .agent:     ConfigSectionView(section: "agent", title: "Agent 设置")
-                                case .computer:  ConfigSectionView(section: "computer", title: "电脑使用")
+                                case .computer:  ComputerView()
                                 case .mcp:       ConfigSectionView(section: "mcp", title: "MCP 设置")
                                 case .graph:     KnowledgeGraphView()
                                 case .dataTransfer: DataTransferView()
