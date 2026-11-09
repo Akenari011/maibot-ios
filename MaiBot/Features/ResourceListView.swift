@@ -220,7 +220,13 @@ struct ResourceListView: View {
                     }
                 }
                 if kind == .expression || kind == .jargon {
-                    HStack { selectToggle }
+                    HStack(spacing: 10) {
+                        selectToggle
+                        Button { f1 = ""; f2 = ""; creating = true } label: {
+                            Text("＋ 新增").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                        }.buttonStyle(.plain)
+                    }
                 }
                 if selecting {
                     HStack {
@@ -235,12 +241,6 @@ struct ResourceListView: View {
                         Button("删除", role: .destructive) { Task { await batchDelete() } }
                         Button("取消", role: .cancel) {}
                     }
-                }
-                if kind == .expression || kind == .jargon {
-                    Button { f1 = ""; f2 = ""; creating = true } label: {
-                        Text("＋ 新增").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                            .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
-                    }.buttonStyle(.plain)
                 }
                 Text("\(kind.title)（共 \(total)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 if items.isEmpty && !loading {
