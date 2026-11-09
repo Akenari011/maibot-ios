@@ -229,6 +229,12 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func fileText(botID: String, ref: String) async throws -> String {
+        let enc = ref.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ref
+        let d = try await getData(proxy(botID, "files/\(enc)/text"))
+        return String(data: d, encoding: .utf8) ?? ""
+    }
+
     func computerStatus(botID: String) async throws -> Any { try await getRaw(proxy(botID, "computer")) }
     func computerFrame(botID: String) async throws -> Data { try await getData(proxy(botID, "computer/frame")) }
 

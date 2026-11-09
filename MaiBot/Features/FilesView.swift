@@ -15,6 +15,9 @@ struct FilesView: View {
     @State private var items: [FileRow] = []
     @State private var error: String?
     @State private var search = ""
+    @State private var selected: FileRow?
+    @State private var preview: String?
+    @State private var previewLoading = false
 
     private var filtered: [FileRow] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
@@ -33,6 +36,7 @@ struct FilesView: View {
                 if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if filtered.isEmpty { Text("暂无文件").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30) }
                 ForEach(filtered) { f in
+                    Button { Task { await open(f) } } label: {
                     Panel(padding: 14) {
                         HStack(spacing: 10) {
                             Image(systemName: "doc").font(.system(size: 16)).foregroundStyle(p.textSecondary)
@@ -44,6 +48,7 @@ struct FilesView: View {
                             Text(fmtSize(f.size)).font(.system(size: 12, design: .monospaced)).foregroundStyle(p.textSecondary)
                         }
                     }
+                    }.buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
@@ -53,6 +58,33 @@ struct FilesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .sheet(item: $selected) { f in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(f.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text)
+                        if previewLoading { ProgressView() }
+                        if let preview {
+                            Text(preview).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary)
+                                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                        } else if !previewLoading {
+                            Text("无法预览（非文本文件或读取失败）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                        }
+                    }.padding(16)
+                }
+                .background(p.bg)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selected = nil } } }
+            }
+        }
+    }
+
+    private func open(_ f: FileRow) async {
+        selected = f; preview = nil; previewLoading = true; defer { previewLoading = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            preview = try await client.fileText(botID: id, ref: f.id)
+        } catch { preview = nil }
     }
 
     private func load() async {
