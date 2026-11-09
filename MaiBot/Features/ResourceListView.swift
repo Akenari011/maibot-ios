@@ -133,6 +133,10 @@ struct ResourceListView: View {
     @State private var loading = false
     @State private var error: String?
     @State private var selected: ResourceItem?
+    @State private var creating = false
+    @State private var f1 = ""
+    @State private var f2 = ""
+    @State private var saving = false
 
     var body: some View {
         ScrollView {
@@ -148,6 +152,12 @@ struct ResourceListView: View {
                 }
                 .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
                 if let e = error { ErrorBanner(message: e) { Task { await load(reset: true) } } }
+                if kind == .expression || kind == .jargon {
+                    Button { f1 = ""; f2 = ""; creating = true } label: {
+                        Text("＋ 新增").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                    }.buttonStyle(.plain)
+                }
                 Text("\(kind.title)（共 \(total)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                 if items.isEmpty && !loading {
                     Text("暂无数据").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30)
@@ -185,6 +195,36 @@ struct ResourceListView: View {
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
         .sheet(item: $selected) { it in ResourceDetailView(kind: kind, item: it) }
+        .sheet(isPresented: $creating) { createSheet }
+    }
+
+    private var createSheet: some View {
+        NavigationStack {
+            Form {
+                Section(kind == .expression ? "情景" : "黑话内容") { TextField("", text: $f1) }
+                Section(kind == .expression ? "风格" : "含义") { TextField("", text: $f2) }
+                Section {
+                    Button(saving ? "保存中…" : "保存（全局）") { Task { await create() } }
+                        .disabled(saving || f1.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .navigationTitle("新增" + kind.title)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { creating = false } } }
+        }
+    }
+
+    private func create() async {
+        saving = true; defer { saving = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            let body: [String: Any] = kind == .expression
+                ? ["situation": f1, "style": f2, "is_global": true]
+                : ["content": f1, "meaning": f2, "is_global": true]
+            _ = try await client.resourceCreate(botID: id, path: kind.path, body: body)
+            creating = false
+            await load(reset: true)
+        } catch { self.error = error.localizedDescription }
     }
 
     private func load(reset: Bool) async {

@@ -274,6 +274,12 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func resourceCreate(botID: String, path: String, body: [String: Any]) async throws -> Any {
+        let basePath = path.replacingOccurrences(of: "/list", with: "")
+        let data = try await sendJSON("POST", proxy(botID, basePath + "/"), body)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func resourceDelete(botID: String, path: String, id: String) async throws -> Any {
         let basePath = path.replacingOccurrences(of: "/list", with: "")
         let enc = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
