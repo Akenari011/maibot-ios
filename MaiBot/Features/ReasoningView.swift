@@ -19,6 +19,11 @@ struct ReasoningView: View {
     @Environment(\.palette) private var p
     @State private var tab = 0
     @State private var stages: [StageRow] = []
+    @State private var stageFilter: String?
+    private var shownFiles: [ReasonFileRow] {
+        guard let sf = stageFilter else { return files }
+        return files.filter { $0.stage == sf }
+    }
     @State private var files: [ReasonFileRow] = []
     @State private var error: String?
     @State private var loading = true
@@ -35,6 +40,7 @@ struct ReasoningView: View {
                 if tab == 0 {
                     Text("阶段（\(stages.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                     ForEach(stages) { s in
+                        Button { stageFilter = s.id; tab = 1 } label: {
                         Panel(padding: 14) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {
@@ -43,12 +49,24 @@ struct ReasoningView: View {
                                         .font(.system(size: 11)).foregroundStyle(p.textSecondary)
                                 }
                                 Spacer()
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                                    .font(.system(size: 14)).foregroundStyle(p.textTertiary)
                             }
                         }
+                        }.buttonStyle(.plain)
                     }
                 } else {
-                    Text("推理文件（\(files.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
-                    ForEach(files) { f in
+                    HStack {
+                        Text("推理文件（\(shownFiles.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                        if let sf = stageFilter {
+                            Button { stageFilter = nil } label: {
+                                Text("阶段: " + sf + " ×").font(.system(size: 10)).foregroundStyle(p.orange)
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(p.orange.opacity(0.12), in: Capsule())
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                    ForEach(shownFiles) { f in
                         Panel(padding: 14) {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
