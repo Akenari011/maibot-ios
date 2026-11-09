@@ -13,6 +13,7 @@ struct MarketplaceView: View {
     @Environment(\.palette) private var p
     @State private var rows: [MarketRow] = []
     @State private var query = ""
+    @State private var selected: MarketRow?
     @State private var rawFallback: Any?
     @State private var error: String?
     @State private var loading = true
@@ -30,6 +31,7 @@ struct MarketplaceView: View {
                     .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
                     Text("市场插件（共 \(rows.count)，显示 \(min(filtered.count, 200))）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
                     ForEach(filtered.prefix(200)) { r in
+                        Button { selected = r } label: {
                         Panel(padding: 14) {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
@@ -40,6 +42,7 @@ struct MarketplaceView: View {
                                 if !r.desc.isEmpty { Text(r.desc).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2) }
                             }
                         }
+                        }.buttonStyle(.plain)
                     }
                 } else if let rawFallback {
                     JSONValueView(key: nil, value: rawFallback)
@@ -53,6 +56,20 @@ struct MarketplaceView: View {
         .navigationTitle("插件市场")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
+        .sheet(item: $selected) { r in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(r.name).font(.system(size: 20, weight: .bold)).foregroundStyle(p.text)
+                        Text("v" + r.version + " · " + r.id).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textTertiary)
+                        if !r.desc.isEmpty { Text(r.desc).font(.system(size: 14)).foregroundStyle(p.textSecondary).fixedSize(horizontal: false, vertical: true) }
+                        Text("安装/卸载请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                    }.padding(16)
+                }
+                .background(p.bg)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selected = nil } } }
+            }
+        }
         .task { await load() }
     }
 
