@@ -86,6 +86,7 @@ struct ResourceDetailView: View {
     @State private var error: String?
     @State private var loading = true
     @State private var confirmDelete = false
+    @State private var showFullImage = false
     @State private var busy = false
 
     var body: some View {
@@ -94,7 +95,17 @@ struct ResourceDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(item.title).font(.system(size: 18, weight: .bold)).foregroundStyle(p.text)
                     if kind == .emoji {
-                        HStack { Spacer(); EmojiThumb(botID: botID, emojiID: item.id, size: 160); Spacer() }
+                        HStack { Spacer()
+                            EmojiThumb(botID: botID, emojiID: item.id, size: 160)
+                                .onTapGesture { showFullImage = true }
+                            Spacer() }
+                        .fullScreenCover(isPresented: $showFullImage) {
+                            ZStack {
+                                Color.black.ignoresSafeArea()
+                                EmojiThumb(botID: botID, emojiID: item.id, size: 360)
+                            }
+                            .onTapGesture { showFullImage = false }
+                        }
                     }
                     if loading { ProgressView().padding(.top, 20) }
                     if let e = error { ErrorBanner(message: e) { Task { await load() } } }
