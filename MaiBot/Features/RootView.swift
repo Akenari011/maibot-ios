@@ -41,9 +41,7 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        // TEMP: capture computer page.
-        let remap: [String: String] = ["home": "computer"]
-        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        let effectiveTab = TestSupport.startTab
         TestSupport.effectiveTab = effectiveTab
         switch effectiveTab {
         case "chat", "room": start = .chat
