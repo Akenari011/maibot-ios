@@ -38,6 +38,8 @@ struct ResourceDetailView: View {
     @State private var data: Any?
     @State private var error: String?
     @State private var loading = true
+    @State private var confirmDelete = false
+    @State private var busy = false
 
     var body: some View {
         NavigationStack {
@@ -47,7 +49,27 @@ struct ResourceDetailView: View {
                     if loading { ProgressView().padding(.top, 20) }
                     if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                     if let data { JSONValueView(key: nil, value: data) }
-                    Text("只读：编辑请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                    if kind == .emoji {
+                        HStack(spacing: 10) {
+                            Button("注册") { Task { await act("register") } }
+                                .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(p.green, in: Capsule())
+                            Button("禁用") { Task { await act("ban") } }
+                                .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                            Button("删除") { confirmDelete = true }
+                                .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(.red, in: Capsule())
+                        }
+                        .disabled(busy)
+                        .confirmationDialog("删除该表情？", isPresented: $confirmDelete, titleVisibility: .visible) {
+                            Button("删除", role: .destructive) { Task { await act("delete") } }
+                            Button("取消", role: .cancel) {}
+                        }
+                    }
+                    if kind != .emoji {
+                        Text("只读：编辑请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                    }
                 }
                 .padding(16)
             }
@@ -55,6 +77,21 @@ struct ResourceDetailView: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
             .task { await load() }
         }
+    }
+
+    private func act(_ action: String) async {
+        busy = true; defer { busy = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            switch action {
+            case "register": _ = try await client.emojiRegister(botID: id, id: item.id)
+            case "ban": _ = try await client.emojiBan(botID: id, id: item.id)
+            case "delete": _ = try await client.emojiDelete(botID: id, id: item.id)
+            default: break
+            }
+            await load()
+        } catch { self.error = error.localizedDescription }
     }
 
     private func load() async {
