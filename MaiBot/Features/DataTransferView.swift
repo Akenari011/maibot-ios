@@ -50,8 +50,7 @@ struct DataTransferView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("数据迁移")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("数据迁移")
         .refreshable { await load() }
         .task { await load() }
     }

@@ -101,8 +101,7 @@ struct KnowledgeGraphView: View {
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selectedNode = nil } } }
             }
         }
-        .navigationTitle("知识图谱")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("知识图谱")
         .refreshable { await load() }
         .task { await load() }
     }

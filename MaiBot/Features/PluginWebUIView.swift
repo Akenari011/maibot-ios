@@ -51,8 +51,7 @@ struct PluginWebUIView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("插件扩展")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("插件扩展")
         .refreshable { await load() }
         .task { await load() }
         }
@@ -114,8 +113,7 @@ struct PluginPageView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome(title)
         .refreshable { await reload() }
         .task { await reload() }
     }

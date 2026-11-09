@@ -62,8 +62,7 @@ struct AdapterConfigView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("适配器设置")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("适配器设置")
         .refreshable { await load() }
         .task { await load() }
     }

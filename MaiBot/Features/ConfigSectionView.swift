@@ -22,8 +22,7 @@ struct ConfigSectionView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome(title)
         .refreshable { await load() }
         .task { await load() }
     }

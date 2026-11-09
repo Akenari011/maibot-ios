@@ -65,8 +65,7 @@ struct PluginsView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("插件配置")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("插件配置")
         .refreshable { await load() }
         .task { await load() }
         .sheet(item: $detail) { d in PluginDetailView(pluginID: d.id, name: d.name) }

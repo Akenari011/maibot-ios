@@ -83,8 +83,7 @@ struct ReasoningView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("推理过程")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("推理过程")
         .refreshable { await load() }
         .task { await load() }
     }

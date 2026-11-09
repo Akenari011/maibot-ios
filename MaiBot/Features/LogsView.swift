@@ -98,8 +98,7 @@ struct LogsView: View {
             Button("清空", role: .destructive) { logs?.clear() }
             Button("取消", role: .cancel) {}
         } message: { Text("仅清除本机已接收的日志，不影响服务器。") }
-        .navigationTitle("日志")
-        .navigationBarTitleDisplayMode(.large)
+        .pageChrome("日志")
         .sheet(isPresented: $filterOpen) { filterSheet }
         .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) {
             if let url = exportURL { LogsShareSheet(items: [url]) }

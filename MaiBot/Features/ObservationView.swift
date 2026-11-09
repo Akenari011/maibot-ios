@@ -45,8 +45,7 @@ struct ObservationView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("观察")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("观察")
         .refreshable { await load() }
         .task { await load() }
     }

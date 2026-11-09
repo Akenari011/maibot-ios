@@ -36,8 +36,7 @@ struct ModelPresetsView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("模型预设")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("模型预设")
         .refreshable { await load() }
         .task { await load() }
     }

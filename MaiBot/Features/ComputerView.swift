@@ -28,8 +28,7 @@ struct ComputerView: View {
             }.padding(16)
         }
         .background(p.bg)
-        .navigationTitle("电脑使用")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("电脑使用")
         .refreshable { await load() }
         .task {
             await load()

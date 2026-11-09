@@ -93,8 +93,7 @@ struct ConfigBrowserView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("麦麦设置")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("麦麦设置")
         .refreshable { await load() }
         .task { await load() }
         .sheet(isPresented: $showSectionEditor) { sectionEditor }

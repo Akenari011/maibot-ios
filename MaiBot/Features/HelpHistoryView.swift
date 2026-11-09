@@ -41,8 +41,7 @@ struct HelpHistoryView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("帮助历史")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("帮助历史")
         .refreshable { await load() }
         .task { await load() }
         .sheet(item: $selected) { r in

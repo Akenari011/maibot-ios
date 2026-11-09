@@ -65,8 +65,7 @@ struct LearningView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("学习")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("学习")
     }
 
     private func run() async {

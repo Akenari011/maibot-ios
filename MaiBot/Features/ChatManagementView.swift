@@ -49,8 +49,7 @@ struct ChatManagementView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("聊天管理")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("聊天管理")
         .refreshable { await load() }
         .task { await load() }
         .sheet(item: $selected) { s in detailSheet(s) }

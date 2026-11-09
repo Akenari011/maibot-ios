@@ -297,8 +297,7 @@ struct ResourceListView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle(kind.title)
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome(kind.title)
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
         .onChange(of: pickerItem) { _, item in

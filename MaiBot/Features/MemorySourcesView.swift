@@ -53,8 +53,7 @@ struct MemorySourcesView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("知识库")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("知识库")
         .refreshable { await load() }
         .task { await load() }
     }

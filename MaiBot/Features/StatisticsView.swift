@@ -38,8 +38,7 @@ struct StatisticsView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("统计")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("统计", showsTitle: false)
         .refreshable { await load() }
         .task { await load() }
         .onChange(of: range) { _, _ in Task { await load() } }

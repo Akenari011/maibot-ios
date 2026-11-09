@@ -36,8 +36,7 @@ struct NewsListView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("资讯")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("资讯")
         .refreshable { await load() }
         .task { await load() }
         .sheet(item: $selected) { item in

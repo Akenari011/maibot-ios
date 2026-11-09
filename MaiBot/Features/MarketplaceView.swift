@@ -53,8 +53,7 @@ struct MarketplaceView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("插件市场")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("插件市场")
         .refreshable { await load() }
         .sheet(item: $selected) { r in
             NavigationStack {

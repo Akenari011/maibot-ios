@@ -54,8 +54,7 @@ struct FilesView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .background(p.bg)
-        .navigationTitle("数据传输")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("数据传输")
         .refreshable { await load() }
         .task { await load() }
         .sheet(item: $selected) { f in

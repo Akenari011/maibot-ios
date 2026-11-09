@@ -60,8 +60,7 @@ struct MonitorView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("监控")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("监控")
         .refreshable { await load() }
         .task {
             await load()

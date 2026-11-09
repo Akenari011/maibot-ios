@@ -48,8 +48,7 @@ struct SettingsComponentsView: View {
             .padding(16)
         }
         .background(p.bg)
-        .navigationTitle("设置组件")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("设置组件")
     }
 
     private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {

@@ -58,8 +58,7 @@ struct SettingsView: View {
             .padding(.horizontal, 16).padding(.top, 8)
         }
         .background(p.bg)
-        .navigationTitle("设置")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageChrome("设置", showsTitle: false)
         .task { await loadBot() }
         .alert("修改服务器地址", isPresented: $editingHost) {
             TextField("https://maibot.example.com", text: $hostDraft)
