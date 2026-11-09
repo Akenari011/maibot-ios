@@ -173,6 +173,7 @@ struct ChatView: View {
     @Environment(APIClient.self) private var client
     @Environment(\.palette) private var p
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var chat: ChatClient?
     @State private var draft = ""
@@ -191,6 +192,9 @@ struct ChatView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.bg)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await chat?.connect() } } else { chat?.disconnect() }
+        }
         .navigationTitle("聊天")
         .navigationBarTitleDisplayMode(.inline)
         .task {
