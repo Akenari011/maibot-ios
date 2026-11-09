@@ -214,6 +214,21 @@ final class APIClient {
     func reasoningStages(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/stages")) }
     func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
     func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace"), timeout: 60) }
+    func setTalkFrequency(botID: String, sessionID: String, previousTime: String?, time: String, value: Double) async throws -> Any {
+        let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? sessionID
+        var body: [String: Any] = ["time": time, "value": value]
+        if let previousTime, !previousTime.isEmpty { body["previous_time"] = previousTime }
+        let data = try await sendJSON("PUT", proxy(botID, "chat/sessions/\(enc)/talk-frequency"), body)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+    func deleteTalkFrequency(botID: String, sessionID: String, time: String?) async throws -> Any {
+        let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? sessionID
+        var path = "chat/sessions/\(enc)/talk-frequency"
+        if let time, !time.isEmpty, let t = time.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) { path += "?time=\(t)" }
+        let data = try await sendJSON("DELETE", proxy(botID, path), nil)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func testProvider(botID: String, name: String) async throws -> Any {
         let enc = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         let data = try await sendJSON("POST", proxy(botID, "model/test-connection-by-name?provider_name=\(enc)"), nil)

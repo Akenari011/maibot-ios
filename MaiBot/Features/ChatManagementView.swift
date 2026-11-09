@@ -12,6 +12,9 @@ struct ChatManagementView: View {
     @State private var detail: [String: Any]?
     @State private var detailLoading = false
     @State private var paused = false
+    @State private var ruleTime = "*"
+    @State private var ruleValue = "0.5"
+    @State private var savingRule = false
 
     private var filtered: [ChatStream] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -83,6 +86,23 @@ struct ChatManagementView: View {
                                         .font(.system(size: 12)).foregroundStyle(p.textSecondary)
                                     Text("当前时段 \((tf["current_time"] as? String) ?? "")")
                                         .font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                                    Divider().padding(.vertical, 4)
+                                    HStack(spacing: 8) {
+                                        TextField("* 或 HH:MM", text: $ruleTime)
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .padding(6).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 6))
+                                        TextField("0-1", text: $ruleValue)
+                                            .font(.system(size: 12, design: .monospaced)).keyboardType(.decimalPad)
+                                            .padding(6).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 6)).frame(width: 70)
+                                    }
+                                    HStack(spacing: 8) {
+                                        Button(savingRule ? "保存中…" : "保存规则") { Task { await saveRule(s) } }
+                                            .font(.system(size: 12, weight: .medium)).foregroundStyle(.white)
+                                            .padding(.horizontal, 12).padding(.vertical, 6).background(p.orange, in: Capsule())
+                                        Button("删除该时段") { Task { await deleteRule(s) } }
+                                            .font(.system(size: 12, weight: .medium)).foregroundStyle(.red)
+                                            .padding(.horizontal, 12).padding(.vertical, 6).background(Color.red.opacity(0.1), in: Capsule())
+                                    }.disabled(savingRule)
                                 }
                             }
                         }
@@ -94,6 +114,27 @@ struct ChatManagementView: View {
             .background(p.bg)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selected = nil } } }
         }
+    }
+
+    private func saveRule(_ s: ChatStream) async {
+        savingRule = true; defer { savingRule = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            let v = Double(ruleValue) ?? 0.5
+            _ = try await client.setTalkFrequency(botID: id, sessionID: s.sessionID, previousTime: nil, time: ruleTime, value: v)
+            await open(s)
+        } catch { self.error = error.localizedDescription }
+    }
+
+    private func deleteRule(_ s: ChatStream) async {
+        savingRule = true; defer { savingRule = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.deleteTalkFrequency(botID: id, sessionID: s.sessionID, time: ruleTime)
+            await open(s)
+        } catch { self.error = error.localizedDescription }
     }
 
     private func open(_ s: ChatStream) async {
