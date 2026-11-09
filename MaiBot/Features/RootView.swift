@@ -67,6 +67,9 @@ struct MainShell: View {
         case "computer": start = .manage; mp.append(ManageRoute.computer)
         case "mcp":      start = .manage; mp.append(ManageRoute.mcp)
         case "graph":    start = .manage; mp.append(ManageRoute.graph)
+        case "dataTransfer": start = .manage; mp.append(ManageRoute.dataTransfer)
+        case "helpHistory": start = .manage; mp.append(ManageRoute.helpHistory)
+        case "modelPresets": start = .manage; mp.append(ManageRoute.modelPresets)
         default:         start = .home
         }
         _tab = State(initialValue: start)
