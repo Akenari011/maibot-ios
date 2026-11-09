@@ -296,7 +296,15 @@ final class APIClient {
         return data
     }
     func emojiThumbnail(botID: String, id: String) async throws -> Data {
-        try await getData(proxy(botID, "emoji/\(id)/thumbnail"))
+        for _ in 0..<8 {
+            let d = try await getData(proxy(botID, "emoji/\(id)/thumbnail"))
+            if let obj = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any], obj["status"] != nil {
+                try? await Task.sleep(for: .milliseconds(700))
+                continue
+            }
+            return d
+        }
+        return Data()
     }
 
     func emojiRegister(botID: String, id: String) async throws -> Any {
