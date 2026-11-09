@@ -169,6 +169,24 @@ struct PluginPageView: View {
             return AnyView(EmptyView())
         }
     }
+    private func tableNode(_ n: [String: Any]) -> AnyView {
+        let cols = (n["columns"] as? [[String: Any]]) ?? []
+        let rows = (n["value"] as? [String: Any]).flatMap { resolve($0) } as? [[String: Any]] ?? []
+        return AnyView(VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(rows.prefix(50).enumerated()), id: \.offset) { _, row in
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(cols.enumerated()), id: \.offset) { _, c in
+                        let f = (c["field"] as? String) ?? ""
+                        HStack {
+                            Text((c["label"] as? String) ?? f).font(.system(size: 11)).foregroundStyle(p.textSecondary)
+                            Spacer()
+                            Text(row[f].map { "\($0)" } ?? "—").font(.system(size: 11, design: .monospaced)).foregroundStyle(p.text).lineLimit(1)
+                        }
+                    }
+                }.padding(8).background(p.card, in: RoundedRectangle(cornerRadius: 8))
+            }
+        })
+    }
     private func resolve(_ ref: [String: Any]) -> Any? {
         guard let source = ref["source"] as? String, let field = ref["field"] as? String else { return nil }
         var cur: Any? = queries[source]
