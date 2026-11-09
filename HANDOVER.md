@@ -238,3 +238,11 @@ MaiBot/
 - 分节编辑：选择配置节 → JSON 文本编辑 → POST config/bot/section/{name} → 重新加载。
 - 原始编辑：读取 config/bot/raw → TextEditor 修改 → 二次确认后 POST config/bot/raw（raw_content）。
 - 保存失败/成功均弹窗提示；未授权市场安装/电脑控制。
+
+## 21. 二级/三级/四级页头与菜单样式对齐
+
+对照网页 MobilePageHeader / ManagePage：
+- 统一页头 PageChrome：44pt 圆形玻璃返回 + 34pt bold 大标题（替代系统内联小标题），应用到 25 个页面；
+- 管理菜单行：图标 22、文字 16 常规、chevron 16、行高 54、分隔线自 40pt 起、按下仅底色变化（RowHighlightStyle，0.12s ease-out，不缩放）；
+- 搜索框 40pt 高、圆角 12、16pt 字。
+构建 08f591f 通过；Screenshot job 因 CI runner 排队被取消，截图待补。
