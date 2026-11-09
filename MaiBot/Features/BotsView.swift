@@ -33,6 +33,10 @@ struct BotsView: View {
                 statsCard
                 newBotCard
                 instancesHeader
+                if bots.isEmpty && error == nil {
+                    Text("暂无机器人").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                        .frame(maxWidth: .infinity).padding(.vertical, 30)
+                }
                 ForEach(bots) { bot in row(bot) }
                 Spacer(minLength: 90)
             }
