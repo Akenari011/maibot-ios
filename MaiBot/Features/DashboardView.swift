@@ -175,17 +175,17 @@ struct DashboardView: View {
                 }.buttonStyle(.plain)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 20) {
-                NavigationLink(value: HomeRoute.logs) { GridTile(icon: "doc.text", label: "查看日志") }
+                NavigationLink(value: HomeRoute.logs) { GridTile(icon: "doc.text", label: "查看日志") }.buttonStyle(PressableStyle())
                     .buttonStyle(.plain)
-                NavigationLink(value: HomeRoute.settings) { GridTile(icon: "gearshape", label: "外观设置") }
+                NavigationLink(value: HomeRoute.settings) { GridTile(icon: "gearshape", label: "外观设置") }.buttonStyle(PressableStyle())
                     .buttonStyle(.plain)
-                NavigationLink(value: HomeRoute.models) { GridTile(icon: "cpu", label: "模型列表") }
+                NavigationLink(value: HomeRoute.models) { GridTile(icon: "cpu", label: "模型列表") }.buttonStyle(PressableStyle())
                     .buttonStyle(.plain)
                 Button { onOpenChat() } label: { GridTile(icon: "bubble.left", label: "麦麦聊聊") }
                     .buttonStyle(.plain)
-                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.on.doc", label: "回复日志") }
+                NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.on.doc", label: "回复日志") }.buttonStyle(PressableStyle())
                     .buttonStyle(.plain)
-                NavigationLink(value: HomeRoute.reasoning) { GridTile(icon: "doc.text.magnifyingglass", label: "推理日志") }
+                NavigationLink(value: HomeRoute.reasoning) { GridTile(icon: "doc.text.magnifyingglass", label: "推理日志") }.buttonStyle(PressableStyle())
                     .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
