@@ -177,6 +177,7 @@ struct ChatView: View {
 
     @State private var chat: ChatClient?
     @State private var draft = ""
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -333,12 +334,13 @@ struct ChatView: View {
         HStack(spacing: 10) {
             TextField("发送消息…", text: $draft, axis: .vertical)
                 .lineLimit(1...4)
+                .focused($inputFocused)
                 .font(.system(size: 15))
                 .padding(.horizontal, 16).padding(.vertical, 11)
                 .background(p.iconCircle, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             Button {
                 guard case .ready = chat.status else { return }
-                let t = draft; draft = ""; chat.send(t)
+                let t = draft; draft = ""; chat.send(t); inputFocused = true
             } label: {
                 let ready = { if case .ready = chat.status { return true } else { return false } }()
                 Image(systemName: "paperplane.fill")
