@@ -27,7 +27,7 @@ struct RootView: View {
 
 enum AppTab: Hashable { case home, chat, manage }
 enum HomeRoute: Hashable { case activity, models, settings, logs, files, news, reasoning, gated(String) }
-enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, adapter, reasoning, market, learning, emoji, expression, jargon, person, chatManagement, agent, computer, mcp, graph, dataTransfer, helpHistory, modelPresets, monitor, components, settings, logs, other(String) }
+enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, adapter, reasoning, market, learning, emoji, expression, jargon, person, chatManagement, agent, computer, mcp, graph, dataTransfer, helpHistory, modelPresets, monitor, components, observation, settings, logs, other(String) }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
@@ -72,6 +72,7 @@ struct MainShell: View {
         case "modelPresets": start = .manage; mp.append(ManageRoute.modelPresets)
         case "monitor":  start = .manage; mp.append(ManageRoute.monitor)
         case "components": start = .manage; mp.append(ManageRoute.components)
+        case "observation": start = .manage; mp.append(ManageRoute.observation)
         default:         start = .home
         }
         _tab = State(initialValue: start)
@@ -133,6 +134,7 @@ struct MainShell: View {
                                 case .modelPresets: ModelPresetsView()
                                 case .monitor:   MonitorView()
                                 case .components: SettingsComponentsView()
+                                case .observation: ObservationView()
                                 case .settings:  SettingsView()
                                 case .logs:      LogsView()
                                 case .other(let title): PlaceholderPage(title: title)
