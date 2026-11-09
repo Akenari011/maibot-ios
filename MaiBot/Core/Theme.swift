@@ -210,6 +210,16 @@ struct PressableStyle: ButtonStyle {
     }
 }
 
+/// 网页版菜单行的按下态：仅整行底色加深（active:bg-muted + transition-colors），不缩放。
+struct RowHighlightStyle: ButtonStyle {
+    var highlight: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? highlight : Color.clear)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Dark palette & theme root
 
 extension Palette {

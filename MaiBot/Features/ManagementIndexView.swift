@@ -108,8 +108,8 @@ struct ManagementIndexView: View {
                                 NavigationLink(value: item.route) {
                                     HStack(spacing: 14) {
                                         Image(systemName: item.icon)
-                                            .font(.system(size: 18, weight: .regular))
-                                            .frame(width: 24)
+                                            .font(.system(size: 22, weight: .regular))
+                                            .frame(width: 22)
                                             .foregroundStyle(p.text)
                                         Text(item.title).font(.system(size: 16)).foregroundStyle(p.text)
                                         if case .other = item.route {
@@ -120,15 +120,15 @@ struct ManagementIndexView: View {
                                         }
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(.system(size: 16, weight: .semibold))
                                             .foregroundStyle(p.textTertiary)
                                     }
                                     .padding(.horizontal, 16).frame(height: 54)
                                     .contentShape(.rect)
                                 }
-                                .buttonStyle(PressableStyle())
+                                .buttonStyle(RowHighlightStyle(highlight: p.iconCircle))
                                 if idx < g.items.count - 1 {
-                                    Rectangle().fill(p.separator).frame(height: 1).padding(.leading, 54)
+                                    Rectangle().fill(p.separator).frame(height: 1).padding(.leading, 40)
                                 }
                             }
                         }
