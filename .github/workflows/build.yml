@@ -91,7 +91,7 @@ jobs:
           test -d "$APP" || { echo "app missing"; ls -R build/sim/Build/Products || true; exit 1; }
           xcrun simctl install "$DEV" "$APP"
           xcrun simctl status_bar "$DEV" override --time "9:41" --batteryLevel 100 --cellularBars 4 || true
-          for TAB in home manage chat logs settings bots room dark stats config plugins memory prompts files news; do
+          for TAB in home manage chat logs settings bots room dark stats config plugins memory prompts files news adapter reasoning market learning; do
             echo "=== $TAB ==="
             SLEEP=8
             case "$TAB" in
@@ -105,6 +105,10 @@ jobs:
               prompts) SLEEP=12 ;;
               files) SLEEP=12 ;;
               news) SLEEP=12 ;;
+              learning) SLEEP=12 ;;
+              market) SLEEP=12 ;;
+              reasoning) SLEEP=12 ;;
+              adapter) SLEEP=12 ;;
             esac
             if [ "$TAB" = "chat" ]; then
               SIMCTL_CHILD_GM_TEST_CHAT_TEXT="你好，简单介绍一下你自己" SIMCTL_CHILD_GM_TEST_COOKIE="$GM_COOKIE" SIMCTL_CHILD_GM_TEST_TAB=chat xcrun simctl launch --terminate-running-process "$DEV" "$BUNDLE" || true
