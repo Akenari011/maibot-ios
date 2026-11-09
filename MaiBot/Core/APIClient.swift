@@ -214,6 +214,12 @@ final class APIClient {
     func reasoningStages(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/stages")) }
     func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
     func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace"), timeout: 60) }
+    func testProvider(botID: String, name: String) async throws -> Any {
+        let enc = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        let data = try await sendJSON("POST", proxy(botID, "model/test-connection-by-name?provider_name=\(enc)"), nil)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func pluginWebUI(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/runtime/webui")) }
     func pluginDocumentText(botID: String, pluginID: String, pageID: String) async throws -> String {
         let p = [pluginID, pageID].map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? $0 }.joined(separator: "/")

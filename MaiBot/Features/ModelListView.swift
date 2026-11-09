@@ -12,6 +12,8 @@ struct ModelListView: View {
 
     @State private var models: [ModelConfig.ModelInfo] = []
     @State private var query = ""
+    @State private var testResult: String?
+    @State private var testing = false
     @State private var error: String?
 
     private var filtered: [ModelConfig.ModelInfo] {
@@ -56,6 +58,13 @@ struct ModelListView: View {
                             Text(m.modelType ?? "").font(.system(size: 11, weight: .medium)).foregroundStyle(p.textSecondary)
                                 .padding(.horizontal, 8).padding(.vertical, 3)
                                 .background(p.iconCircle, in: .capsule)
+                            Button(testing ? "…" : "测试") {
+                                Task { await test(m.apiProvider ?? "") }
+                            }
+                            .font(.system(size: 11, weight: .medium)).foregroundStyle(p.orange)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(p.orange.opacity(0.12), in: .capsule)
+                            .disabled(testing || (m.apiProvider ?? "").isEmpty)
                         }
                     }
                 }
@@ -66,7 +75,25 @@ struct ModelListView: View {
         .navigationTitle("模型列表")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await load() }
+        .alert("测试结果", isPresented: Binding(get: { testResult != nil }, set: { if !$0 { testResult = nil } })) {
+            Button("好") { testResult = nil }
+        } message: { Text(testResult ?? "") }
         .task { await load() }
+    }
+
+    private func test(_ provider: String) async {
+        guard !provider.isEmpty else { return }
+        testing = true; defer { testing = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            let r = try await client.testProvider(botID: id, name: provider)
+            let d = r as? [String: Any] ?? [:]
+            let ok = (d["network_ok"] as? Bool) ?? false
+            let latency = d["latency_ms"].map { "\($0)" } ?? "—"
+            let err = (d["error"] as? String) ?? ""
+            testResult = (ok ? "✅ 连接成功" : "❌ 连接失败") + "\n延迟: " + latency + " ms" + (err.isEmpty ? "" : "\n" + err)
+        } catch { testResult = "❌ " + error.localizedDescription }
     }
 
     private func load() async {
