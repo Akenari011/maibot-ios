@@ -215,6 +215,15 @@ final class APIClient {
     func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
     func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace"), timeout: 60) }
     func pluginWebUI(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/runtime/webui")) }
+    func pluginDocumentText(botID: String, pluginID: String, pageID: String) async throws -> String {
+        let p = [pluginID, pageID].map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? $0 }.joined(separator: "/")
+        let req = try makeRequest(proxy(botID, "plugins/runtime/webui/\(p)/document"))
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        if http.statusCode == 401 { throw unauthorizedError(for: req.url?.path ?? "") }
+        guard (200..<300).contains(http.statusCode) else { throw APIError.http(http.statusCode, "") }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
     func pluginInvoke(botID: String, pluginID: String, pageID: String, kind: String, name: String, args: [String: Any]) async throws -> Any {
         let p = [pluginID, pageID, kind, name].map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? $0 }.joined(separator: "/")
         let data = try await sendJSON("POST", proxy(botID, "plugins/runtime/webui/\(p)"), ["args": args, "confirmed": false])

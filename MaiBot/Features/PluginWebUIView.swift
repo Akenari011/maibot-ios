@@ -82,6 +82,8 @@ struct PluginPageView: View {
     @State private var error: String?
     @State private var loading = true
     @State private var busy = false
+    @State private var customHTML: String?
+    @State private var customError: String?
 
     private var pageID: String { (page["id"] as? String) ?? "" }
     private var title: String { (page["title"] as? String) ?? "插件页面" }
@@ -96,7 +98,12 @@ struct PluginPageView: View {
                 if loading { ProgressView().frame(maxWidth: .infinity).padding(.top, 30) }
                 if let e = error { ErrorBanner(message: e) { Task { await reload() } } }
                 if !isDeclarative && !loading {
-                    Text("此页面为插件自定义 Web 页面，暂不支持在 iOS 内渲染。").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                    if let html = customHTML {
+                        CustomPluginWebView(html: html, baseURL: client.baseURL)
+                            .frame(minHeight: 600)
+                    } else {
+                        Text(customError ?? "正在加载插件页面…").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                    }
                 }
                 if isDeclarative {
                     ForEach(Array(content.enumerated()), id: \.offset) { _, node in
@@ -223,6 +230,12 @@ struct PluginPageView: View {
         do {
             let mode = try await client.hostMode()
             guard let id = mode.selectedBotID else { return }
+            if !isDeclarative {
+                do { customHTML = try await client.pluginDocumentText(botID: id, pluginID: pluginID, pageID: pageID) }
+                catch { customError = error.localizedDescription }
+                error = nil
+                return
+            }
             for name in queryDefs.keys.sorted() {
                 let args = values.reduce(into: [String: Any]()) { acc, kv in acc[kv.key] = kv.value }
                 queries[name] = try await client.pluginInvoke(botID: id, pluginID: pluginID, pageID: pageID, kind: "queries", name: name, args: args)
