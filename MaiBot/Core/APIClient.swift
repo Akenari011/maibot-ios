@@ -232,6 +232,11 @@ final class APIClient {
         }
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
+    func saveAdapterConfigPath(botID: String, path: String) async throws -> Any {
+        let data = try await sendJSON("POST", proxy(botID, "config/adapter-config/path"), ["path": path])
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func adapterConfig(botID: String, path: String) async throws -> Any {
         let enc = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
         return try await getRaw(proxy(botID, "config/adapter-config?path=\(enc)"))
