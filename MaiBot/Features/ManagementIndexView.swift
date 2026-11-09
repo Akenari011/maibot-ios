@@ -31,7 +31,7 @@ struct ManagementIndexView: View {
             ManagementGroup(title: "配置管理", items: [
                 ManagementItem(icon: "slider.horizontal.3", title: "麦麦设置", route: .config),
                 ManagementItem(icon: "cube", title: "模型管理", route: .models),
-                ManagementItem(icon: "wifi.router", title: "适配器设置", route: .other("适配器设置")),
+                ManagementItem(icon: "wifi.router", title: "适配器设置", route: .adapter),
                 ManagementItem(icon: "cpu", title: "机器人管理", route: .bots),
             ]),
             ManagementGroup(title: "资源管理", items: [
