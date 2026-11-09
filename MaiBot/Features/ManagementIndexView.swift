@@ -50,6 +50,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "server.rack", title: "MCP 设置", route: .mcp),
                 ManagementItem(icon: "puzzlepiece.extension", title: "插件配置", route: .plugins),
                 ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .market),
+                ManagementItem(icon: "rectangle.on.rectangle", title: "插件扩展", route: .pluginWebUI),
             ]),
             ManagementGroup(title: "高级工具", items: [
                 ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
