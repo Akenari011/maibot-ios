@@ -41,7 +41,11 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        switch TestSupport.startTab {
+        // TEMP: capture new resource pages within one screenshot run.
+        let remap: [String: String] = ["home": "emoji", "manage": "expression",
+                                       "chat": "jargon", "logs": "person"]
+        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        switch effectiveTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
@@ -58,6 +62,10 @@ struct MainShell: View {
         case "reasoning": start = .manage; mp.append(ManageRoute.reasoning)
         case "market":   start = .manage; mp.append(ManageRoute.market)
         case "learning": start = .manage; mp.append(ManageRoute.learning)
+        case "emoji":    start = .manage; mp.append(ManageRoute.emoji)
+        case "expression": start = .manage; mp.append(ManageRoute.expression)
+        case "jargon":   start = .manage; mp.append(ManageRoute.jargon)
+        case "person":   start = .manage; mp.append(ManageRoute.person)
         default:         start = .home
         }
         _tab = State(initialValue: start)
