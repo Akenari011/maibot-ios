@@ -125,13 +125,14 @@ MaiBot/
 │         ChatClient, LogsClient, TestSupport
 └── Features/  RootView(含 Tab 栏/聊天室), LoginView, DashboardView, BotsView,
               ChatListView, ManagementIndexView, ActivityView, ModelListView,
-              SettingsView, LogsView
+              SettingsView, LogsView, StatisticsView, ConfigBrowserView,
+              PluginsView, MemorySourcesView, PromptsView, FilesView, NewsListView
 ```
 
 ## 9. 给新会话的第一句话（直接粘贴）
 
 > 接手 MaiBot iOS（https://github.com/Lbcheng1145/maibot-ios），先读仓库根目录 HANDOVER.md。
-> 当前进度：首页/机器人/活动流/模型/设置已完成并在 CI 模拟器截图验证；原生聊天已确认收发
-> （机器人回复事件名 = bot_message）；真实日志页已用统一 WS 订阅 logs/main 实现。
-> 下一步：跑一次 Actions，下载 app-screenshots artifact 看 home/manage/chat/logs 四页，
-> chat 页应能看到机器人回复气泡。接口与协议见 HANDOVER §5/§5.1，不要改 SSO 网关。
+> 当前进度：首页/聊天(列表+对话)/管理/设置(6Tab·浅深主题·强调色)/机器人/日志(棕终端·来源多选·日期筛选)/
+> 模型/统计/麦麦设置(只读)/插件/长期记忆/提示词/文件/资讯 共 14 个真实页面已完成；受限 4 页(插件市场/推理过程/
+> 适配器/学习)保留占位并提供"在网页版打开"深链。机器人代理 401 不再触发登出；WS 后台自动断开。
+> 下一步：按需手动触发 Actions 下载 app-screenshots（15 个 tab）核验；接口与协议见 HANDOVER §5/§5.1，不要改 SSO 网关。
