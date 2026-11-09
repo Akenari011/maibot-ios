@@ -206,7 +206,7 @@ struct LogsView: View {
     private func pillLabel(_ title: String, trailing: String? = nil, icon: String? = nil) -> some View {
         HStack(spacing: 5) {
             if let icon { Image(systemName: icon).font(.system(size: 11, weight: .semibold)) }
-            Text(title).font(.system(size: 12, weight: .medium))
+            Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1).fixedSize()
             if let trailing { Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary).lineLimit(1).fixedSize() }
         }
         .foregroundStyle(p.text)
