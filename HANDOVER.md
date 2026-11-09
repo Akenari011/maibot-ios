@@ -18,7 +18,7 @@ MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Lbcheng1145/m
 | 设置页 | ✅ 6 Tab（通用/机器人/外观/安全/其他/关于）；安全页接 auth/update、auth/regenerate |
 | 机器人管理 | ✅ PageFrame(圆角8/2px)+DataPanel、3 秒轮询、详情折叠 |
 | 日志（实时） | ✅ 棕色终端 + 工具栏（搜索/来源/筛选/跟随/导出/清空/字号行距）；自适应 ws |
-| 子页面 | ✅ 模型列表/统计/麦麦设置(只读JSON)/插件(installed)/长期记忆(sources)/提示词(prompts)/文件(files)/资讯(news)；插件市场·推理过程·适配器·学习受接口鉴权/参数限制暂占位（提供"在网页版打开"深链） |
+| 子页面 | ✅ 模型列表/统计/麦麦设置(只读JSON)/插件(installed)/长期记忆(sources)/提示词(prompts)/文件(files)/资讯(news)/适配器(adapter-config)；插件市场·推理过程·适配器·学习受接口鉴权/参数限制暂占位（提供"在网页版打开"深链） |
 | 登录 | WKWebView + App-Bound Domains + Safari UA |
 | 原生聊天 | ✅ 会话列表(真实 /api/chat/sessions) + 对话页(自适应 ws、头像/玻璃状态头/消息「名称·时间」分组) |
 | CI 模拟器截图 | ✅ 七页 home/manage/chat/logs/settings/bots/room；模拟器冷启动约 5-7 分钟 |
@@ -133,7 +133,7 @@ MaiBot/
 
 > 接手 MaiBot iOS（https://github.com/Lbcheng1145/maibot-ios），先读仓库根目录 HANDOVER.md。
 > 当前进度：首页/聊天(列表+对话)/管理/设置(6Tab·浅深主题·强调色)/机器人/日志(棕终端·来源多选·日期筛选)/
-> 模型/统计/麦麦设置(只读)/插件/长期记忆/提示词/文件/资讯 共 14 个真实页面已完成；受限 4 页(插件市场/推理过程/
+> 模型/统计/麦麦设置(只读)/插件/长期记忆/提示词/文件/资讯 共 15 个真实页面已完成；受限 3 页(插件市场/推理过程/
 > 适配器/学习)保留占位并提供"在网页版打开"深链。机器人代理 401 不再触发登出；WS 后台自动断开。
 > 下一步：按需手动触发 Actions 下载 app-screenshots（15 个 tab）核验；接口与协议见 HANDOVER §5/§5.1，不要改 SSO 网关。
 ## 10. 近期变更（iOS 端）
