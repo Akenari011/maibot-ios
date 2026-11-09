@@ -56,20 +56,29 @@ struct JSONValueView: View {
     @Environment(\.palette) private var p
     let key: String?
     let value: Any
+    var depth: Int = 0
+    @State private var expanded: Bool
+
+    init(key: String?, value: Any, depth: Int = 0) {
+        self.key = key
+        self.value = value
+        self.depth = depth
+        _expanded = State(initialValue: depth <= 1)
+    }
 
     var body: some View {
         if let dict = value as? [String: Any] {
-            DisclosureGroup {
+            DisclosureGroup(isExpanded: $expanded) {
                 ForEach(dict.keys.sorted(), id: \.self) { k in
-                    JSONValueView(key: k, value: dict[k] ?? NSNull())
+                    JSONValueView(key: k, value: dict[k] ?? NSNull(), depth: depth + 1)
                 }
             } label: {
                 label(dict.count, suffix: "项")
             }
         } else if let arr = value as? [Any] {
-            DisclosureGroup {
+            DisclosureGroup(isExpanded: $expanded) {
                 ForEach(arr.indices, id: \.self) { i in
-                    JSONValueView(key: "[\(i)]", value: arr[i])
+                    JSONValueView(key: "[\(i)]", value: arr[i], depth: depth + 1)
                 }
             } label: {
                 label(arr.count, suffix: "元素")

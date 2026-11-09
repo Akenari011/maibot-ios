@@ -207,7 +207,7 @@ struct LogsView: View {
         HStack(spacing: 5) {
             if let icon { Image(systemName: icon).font(.system(size: 11, weight: .semibold)) }
             Text(title).font(.system(size: 12, weight: .medium))
-            if let trailing { Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary) }
+            if let trailing { Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary).lineLimit(1).fixedSize() }
         }
         .foregroundStyle(p.text)
         .padding(.horizontal, 10).padding(.vertical, 7)
