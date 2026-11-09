@@ -73,6 +73,9 @@ struct StatisticsView: View {
         Panel {
             VStack(alignment: .leading, spacing: 12) {
                 Label("请求趋势", systemImage: "chart.line.uptrend.xyaxis").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                if d.hourlyData.isEmpty {
+                    Text("暂无数据").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                }
                 Chart(d.hourlyData) { pt in
                     LineMark(x: .value("时间", pt.hourLabel), y: .value("请求", pt.requests))
                         .foregroundStyle(p.orange).interpolationMethod(.catmullRom)
@@ -88,6 +91,9 @@ struct StatisticsView: View {
         Panel {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Token 消耗", systemImage: "chart.bar.doc.horizontal").font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+                if d.hourlyData.isEmpty {
+                    Text("暂无数据").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                }
                 Chart(d.hourlyData) { pt in
                     BarMark(x: .value("时间", pt.hourLabel), y: .value("Token", pt.inputTokens)).foregroundStyle(p.orange)
                 }
