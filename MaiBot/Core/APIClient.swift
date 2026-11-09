@@ -265,6 +265,12 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func resourceDetail(botID: String, path: String, id: String) async throws -> Any {
+        let basePath = path.replacingOccurrences(of: "/list", with: "")
+        let enc = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return try await getRaw(proxy(botID, "\(basePath)/\(enc)"))
+    }
+
     func resourcePage(botID: String, path: String, page: Int, search: String) async throws -> Any {
         var q = "\(path)?page=\(page)&page_size=20"
         let s = search.trimmingCharacters(in: .whitespaces)

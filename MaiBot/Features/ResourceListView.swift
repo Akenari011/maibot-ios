@@ -28,6 +28,48 @@ struct ResourceItem: Identifiable {
     let detail: String
 }
 
+struct ResourceDetailView: View {
+    let kind: ResourceKind
+    let item: ResourceItem
+    @Environment(APIClient.self) private var client
+    @Environment(AuthStore.self) private var auth
+    @Environment(\.palette) private var p
+    @Environment(\.dismiss) private var dismiss
+    @State private var data: Any?
+    @State private var error: String?
+    @State private var loading = true
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(item.title).font(.system(size: 18, weight: .bold)).foregroundStyle(p.text)
+                    if loading { ProgressView().padding(.top, 20) }
+                    if let e = error { ErrorBanner(message: e) { Task { await load() } } }
+                    if let data { JSONValueView(key: nil, value: data) }
+                    Text("只读：编辑请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                }
+                .padding(16)
+            }
+            .background(p.bg)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
+            .task { await load() }
+        }
+    }
+
+    private func load() async {
+        loading = true; defer { loading = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            let raw = try await client.resourceDetail(botID: id, path: kind.path, id: item.id)
+            if let d = raw as? [String: Any] { data = d["data"] ?? d["detail"] ?? d } else { data = raw }
+            error = nil
+        } catch APIError.unauthorized { await auth.signOut(client: client) }
+        catch { self.error = error.localizedDescription }
+    }
+}
+
 struct ResourceListView: View {
     let kind: ResourceKind
     @Environment(APIClient.self) private var client
@@ -39,6 +81,7 @@ struct ResourceListView: View {
     @State private var query = ""
     @State private var loading = false
     @State private var error: String?
+    @State private var selected: ResourceItem?
 
     var body: some View {
         ScrollView {
@@ -59,17 +102,19 @@ struct ResourceListView: View {
                     Text("暂无数据").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30)
                 }
                 ForEach(items) { it in
-                    Panel(padding: 14) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(it.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
-                            if !it.subtitle.isEmpty {
-                                Text(it.subtitle).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2)
-                            }
-                            if !it.detail.isEmpty {
-                                Text(it.detail).font(.system(size: 11)).foregroundStyle(p.textTertiary).lineLimit(1)
+                    Button { selected = it } label: {
+                        Panel(padding: 14) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(it.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
+                                if !it.subtitle.isEmpty {
+                                    Text(it.subtitle).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2)
+                                }
+                                if !it.detail.isEmpty {
+                                    Text(it.detail).font(.system(size: 11)).foregroundStyle(p.textTertiary).lineLimit(1)
+                                }
                             }
                         }
-                    }
+                    }.buttonStyle(.plain)
                 }
                 if items.count < total {
                     Button {
@@ -88,6 +133,7 @@ struct ResourceListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
+        .sheet(item: $selected) { it in ResourceDetailView(kind: kind, item: it) }
     }
 
     private func load(reset: Bool) async {
