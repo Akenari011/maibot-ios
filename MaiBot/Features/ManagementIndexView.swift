@@ -65,6 +65,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "waveform.path.ecg", title: "监控", route: .monitor),
             ]),
             ManagementGroup(title: "系统", items: [
+                ManagementItem(icon: "square.grid.3x3", title: "设置组件", route: .components),
                 ManagementItem(icon: "gearshape", title: "设置", route: .settings),
             ]),
         ]
