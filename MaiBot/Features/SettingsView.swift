@@ -206,7 +206,11 @@ struct SettingsView: View {
             card {
                 row("本地存储") { Spacer(); Text(storageText).font(.system(size: 14, design: .monospaced)).foregroundStyle(p.textSecondary) }
                 divider
-                row("清除日志缓存") { Spacer(); Button("清除") { notice = "已请求清除（客户端缓存）" }.font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange) }
+                row("清除日志缓存") { Spacer(); Button("清除") {
+                    ["log.level", "log.font", "log.lineSpacing", "log.autoFollow", "log.hiddenModules"]
+                        .forEach { UserDefaults.standard.removeObject(forKey: $0) }
+                    notice = "已清除日志本地缓存（筛选/字号/行距等）"
+                }.font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange) }
                 divider
                 row("重置设置") { Spacer(); Button("重置") { confirmReset = true }.font(.system(size: 13, weight: .medium)).foregroundStyle(.red) }
             }
