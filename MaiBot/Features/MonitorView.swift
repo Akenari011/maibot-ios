@@ -63,11 +63,19 @@ struct MonitorView: View {
         .navigationTitle("监控")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
-        .task { await load() }
+        .task {
+            await load()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                if Task.isCancelled { break }
+                await load(silent: true)
+            }
+        }
     }
 
-    private func load() async {
-        loading = true; defer { loading = false }
+    private func load(silent: Bool = false) async {
+        if !silent { loading = true }
+        defer { if !silent { loading = false } }
         do {
             let mode = try await client.hostMode()
             guard let id = mode.selectedBotID else { return }
