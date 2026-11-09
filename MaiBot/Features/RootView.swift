@@ -168,6 +168,7 @@ struct MainShell: View {
             .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
 
             Button {
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 withAnimation(Motion.tab) { tab = .home; homePath = NavigationPath() }
             } label: {
                 Image(systemName: "magnifyingglass")
@@ -187,6 +188,7 @@ struct MainShell: View {
     private func tabItem(_ t: AppTab, _ label: String, _ icon: String) -> some View {
         let on = tab == t
         return Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             withAnimation(reduceMotion ? nil : Motion.tab) { tab = t }
         } label: {
             VStack(spacing: 4) {
