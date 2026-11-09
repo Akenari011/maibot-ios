@@ -6,6 +6,9 @@ struct PluginRow: Identifiable {
     let version: String
     let desc: String
     let author: String
+    let enabled: Bool
+    let loaded: Bool
+    let loadError: String
 }
 
 struct PluginsView: View {
@@ -43,7 +46,13 @@ struct PluginsView: View {
                             Text(it.id).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary).lineLimit(1)
                             if !it.desc.isEmpty { Text(it.desc).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2) }
                             if !it.author.isEmpty { Text("作者：" + it.author).font(.system(size: 11)).foregroundStyle(p.textTertiary) }
+                            if !it.loadError.isEmpty {
+                                Text("加载失败：" + it.loadError).font(.system(size: 11)).foregroundStyle(.red).lineLimit(2)
+                            }
                         }
+                    } trailing: {
+                        Toggle("", isOn: Binding(get: { it.enabled }, set: { v in Task { await toggle(it, v) } }))
+                            .labelsHidden()
                     }
                 }
             }
@@ -54,6 +63,16 @@ struct PluginsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    private func toggle(_ row: PluginRow, _ value: Bool) async {
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.togglePlugin(botID: id, pluginID: row.id)
+            await load()
+        } catch APIError.unauthorized { await auth.signOut(client: client) }
+        catch { self.error = error.localizedDescription }
     }
 
     private func load() async {
@@ -69,7 +88,10 @@ struct PluginsView: View {
                                  name: (man["name"] as? String) ?? (m["id"] as? String) ?? "—",
                                  version: (man["version"] as? String) ?? "—",
                                  desc: (man["description"] as? String) ?? "",
-                                 author: author)
+                                 author: author,
+                                 enabled: (m["enabled"] as? Bool) ?? false,
+                                 loaded: (m["loaded"] as? Bool) ?? false,
+                                 loadError: (m["load_error"] as? String) ?? "")
             }
             error = nil
         } catch APIError.unauthorized { await auth.signOut(client: client) }
