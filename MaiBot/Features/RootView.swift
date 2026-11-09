@@ -41,7 +41,9 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        let effectiveTab = TestSupport.startTab
+        // TEMP: capture config editor.
+        let remap: [String: String] = ["home": "config"]
+        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
         TestSupport.effectiveTab = effectiveTab
         switch effectiveTab {
         case "chat", "room": start = .chat
