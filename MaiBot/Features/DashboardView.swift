@@ -38,6 +38,9 @@ struct DashboardView: View {
                 if let error {
                     ErrorBanner(message: error) { Task { await load() } }
                 }
+                if dash == nil, error == nil {
+                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 20)
+                }
                 botStatusCard
                 gridCard
                 hitokotoLine
