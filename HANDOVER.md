@@ -184,3 +184,11 @@ MaiBot/
 
 截图 artifact：13653693310（表情/表达/黑话/人物/聊天管理）、13655053960（Agent/知识图谱）、
 13656583334（模型预设/数据迁移）、13657676775（监控/设置组件）、13659211892（观察）。
+
+## 15. 插件扩展与回归（artifact 合集）
+
+- 插件扩展注册表页 + 声明式渲染器（stack/card/grid/collapsible/text/stat/progress/table/input/switch/select/button）；
+  queries/actions 调用 /plugins/runtime/webui/{plugin}/{page}/{kind}/{name}；示例「生活频率」页真实渲染成功（artifact 13662416287）。
+- custom 模式插件页：拉取 /document HTML 用 WKWebView 渲染。
+- 全量回归截图：13659518439、13663751347（19 tab，无回归）。
+- 测试钩子 TestSupport.effectiveTab 仅用于截图重映射。
