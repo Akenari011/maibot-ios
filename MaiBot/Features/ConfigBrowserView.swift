@@ -14,6 +14,34 @@ struct ConfigBrowserView: View {
 
     @State private var root: [String: Any]?
     @State private var error: String?
+    @State private var query = ""
+
+    private var flatMatches: [(String, String)] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty, let root else { return [] }
+        var out: [(String, String)] = []
+        func walk(_ v: Any, _ path: String, _ depth: Int) {
+            guard out.count < 200, depth <= 8 else { return }
+            if let d = v as? [String: Any] {
+                for (k, sub) in d { walk(sub, path.isEmpty ? k : path + "." + k, depth + 1) }
+            } else if let a = v as? [Any] {
+                for (i, sub) in a.enumerated() { walk(sub, path + "[\(i)]", depth + 1) }
+            } else {
+                let s = scalarString(v)
+                if path.lowercased().contains(q) || s.lowercased().contains(q) {
+                    out.append((path, s))
+                }
+            }
+        }
+        walk(root, "", 0)
+        return out
+    }
+
+    private func scalarString(_ v: Any) -> String {
+        if let s = v as? String { return s }
+        if let n = v as? NSNumber { return n.stringValue }
+        return "\(v)"
+    }
 
     var body: some View {
         ScrollView {
@@ -21,7 +49,21 @@ struct ConfigBrowserView: View {
                 if let e = error {
                     ErrorBanner(message: e) { Task { await load() } }
                 }
-                if let root {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                    TextField("搜索配置项…", text: $query).font(.system(size: 14)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                }
+                .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
+                if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text("匹配 \(flatMatches.count) 项").font(.system(size: 11)).foregroundStyle(p.textSecondary)
+                    ForEach(flatMatches, id: \.0) { item in
+                        HStack(alignment: .top) {
+                            Text(item.0).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textSecondary)
+                            Spacer(minLength: 8)
+                            Text(item.1).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.text).lineLimit(2)
+                        }.padding(.vertical, 2)
+                    }
+                } else if let root {
                     JSONValueView(key: "config", value: root)
                 } else if error == nil {
                     ProgressView().frame(maxWidth: .infinity).padding(.top, 60)
