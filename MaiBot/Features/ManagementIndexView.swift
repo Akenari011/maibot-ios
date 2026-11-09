@@ -36,6 +36,10 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "资源管理", items: [
                 ManagementItem(icon: "book", title: "学习", route: .learning),
+                ManagementItem(icon: "face.smiling", title: "表情", route: .emoji),
+                ManagementItem(icon: "text.bubble", title: "表达方式", route: .expression),
+                ManagementItem(icon: "character.bubble", title: "黑话", route: .jargon),
+                ManagementItem(icon: "person.crop.circle", title: "人物", route: .person),
                 ManagementItem(icon: "externaldrive", title: "长期记忆", route: .memory),
             ]),
             ManagementGroup(title: "扩展集成", items: [

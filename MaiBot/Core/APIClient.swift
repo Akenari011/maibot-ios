@@ -232,6 +232,15 @@ final class APIClient {
         }
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
+    func resourcePage(botID: String, path: String, page: Int, search: String) async throws -> Any {
+        var q = "\(path)?page=\(page)&page_size=20"
+        let s = search.trimmingCharacters(in: .whitespaces)
+        if !s.isEmpty, let enc = s.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            q += "&search=\(enc)"
+        }
+        return try await getRaw(proxy(botID, q))
+    }
+
     func saveAdapterConfigPath(botID: String, path: String) async throws -> Any {
         let data = try await sendJSON("POST", proxy(botID, "config/adapter-config/path"), ["path": path])
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
