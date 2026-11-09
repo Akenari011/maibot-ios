@@ -244,6 +244,20 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func saveBotSection(botID: String, section: String, value: [String: Any]) async throws -> Any {
+        let enc = section.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? section
+        let data = try await sendJSON("POST", proxy(botID, "config/bot/section/\(enc)"), value)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+    func botConfigRaw(botID: String) async throws -> String {
+        let d = try await getData(proxy(botID, "config/bot/raw"))
+        return String(data: d, encoding: .utf8) ?? ""
+    }
+    func saveBotConfigRaw(botID: String, raw: String) async throws -> Any {
+        let data = try await sendJSON("POST", proxy(botID, "config/bot/raw"), ["raw_content": raw])
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func pluginWebUI(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/runtime/webui")) }
     func pluginDocumentText(botID: String, pluginID: String, pageID: String) async throws -> String {
         let p = [pluginID, pageID].map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? $0 }.joined(separator: "/")

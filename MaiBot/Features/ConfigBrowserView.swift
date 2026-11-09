@@ -15,6 +15,14 @@ struct ConfigBrowserView: View {
     @State private var root: [String: Any]?
     @State private var error: String?
     @State private var query = ""
+    @State private var editingSection: String?
+    @State private var sectionText = ""
+    @State private var showSectionEditor = false
+    @State private var showRaw = false
+    @State private var rawText = ""
+    @State private var saving = false
+    @State private var saveMsg: String?
+    @State private var confirmRaw = false
 
     private var flatMatches: [(String, String)] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -54,6 +62,17 @@ struct ConfigBrowserView: View {
                     TextField("搜索配置项…", text: $query).font(.system(size: 14)).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
                 .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
+                HStack(spacing: 10) {
+                    Menu("编辑配置节") {
+                        ForEach(sectionKeys, id: \.self) { k in
+                            Button(k) { openSection(k) }
+                        }
+                    }
+                    .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+                    Button("原始 TOML") { Task { await openRaw() } }
+                        .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+                    Spacer()
+                }
                 if !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text("匹配 \(flatMatches.count) 项").font(.system(size: 11)).foregroundStyle(p.textSecondary)
                     ForEach(flatMatches, id: \.0) { item in
@@ -68,7 +87,7 @@ struct ConfigBrowserView: View {
                 } else if error == nil {
                     ProgressView().frame(maxWidth: .infinity).padding(.top, 60)
                 }
-                Text("只读：此页仅展示配置，编辑请在网页版操作。")
+                Text("可编辑：分节 JSON 或原始 TOML；保存会写入麦麦配置。")
                     .font(.system(size: 11)).foregroundStyle(p.textTertiary).padding(.top, 8)
             }
             .padding(16)
@@ -78,6 +97,107 @@ struct ConfigBrowserView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .sheet(isPresented: $showSectionEditor) { sectionEditor }
+        .sheet(isPresented: $showRaw) { rawEditor }
+        .alert("提示", isPresented: Binding(get: { saveMsg != nil }, set: { if !$0 { saveMsg = nil } })) {
+            Button("好") { saveMsg = nil }
+        } message: { Text(saveMsg ?? "") }
+    }
+
+    private var sectionKeys: [String] { (root ?? [:]).keys.sorted() }
+
+    private func pretty(_ v: Any) -> String {
+        if let d = v as? [String: Any], let data = try? JSONSerialization.data(withJSONObject: d, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]), let str = String(data: data, encoding: .utf8) { return str }
+        return "\(v)"
+    }
+
+    private func openSection(_ key: String) {
+        guard let root, let v = root[key] as? [String: Any] else {
+            saveMsg = "该配置节不是对象，无法按节编辑，请使用原始 TOML。"
+            return
+        }
+        editingSection = key
+        sectionText = pretty(v)
+        showSectionEditor = true
+    }
+
+    private func saveSection() async {
+        guard let key = editingSection else { return }
+        guard let data = sectionText.data(using: .utf8),
+              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            saveMsg = "JSON 解析失败，请检查格式。"
+            return
+        }
+        saving = true; defer { saving = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.saveBotSection(botID: id, section: key, value: obj)
+            showSectionEditor = false
+            await load()
+            saveMsg = "已保存配置节：\(key)"
+        } catch { saveMsg = "保存失败：\(error.localizedDescription)" }
+    }
+
+    private func openRaw() async {
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            rawText = try await client.botConfigRaw(botID: id)
+            showRaw = true
+        } catch { saveMsg = "读取原始配置失败：\(error.localizedDescription)" }
+    }
+
+    private func saveRaw() async {
+        saving = true; defer { saving = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.saveBotConfigRaw(botID: id, raw: rawText)
+            showRaw = false
+            await load()
+            saveMsg = "已保存原始 TOML 配置。"
+        } catch { saveMsg = "保存失败：\(error.localizedDescription)" }
+    }
+
+    private var sectionEditor: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                TextEditor(text: $sectionText)
+                    .font(.system(size: 12, design: .monospaced))
+                    .padding(8)
+            }
+            .background(p.bg)
+            .navigationTitle("编辑节：" + (editingSection ?? ""))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { showSectionEditor = false } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saving ? "保存中…" : "保存") { Task { await saveSection() } }.disabled(saving)
+                }
+            }
+        }
+    }
+
+    private var rawEditor: some View {
+        NavigationStack {
+            TextEditor(text: $rawText)
+                .font(.system(size: 11, design: .monospaced))
+                .padding(8)
+                .background(p.bg)
+                .navigationTitle("原始 TOML")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("取消") { showRaw = false } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("保存") { confirmRaw = true }.disabled(saving)
+                    }
+                }
+                .confirmationDialog("写入原始 TOML 可能影响麦麦运行，确认保存？", isPresented: $confirmRaw, titleVisibility: .visible) {
+                    Button("确认保存", role: .destructive) { Task { await saveRaw() } }
+                    Button("取消", role: .cancel) {}
+                }
+        }
     }
 
     private func load() async {
