@@ -37,22 +37,24 @@ struct PluginsView: View {
                 if filtered.isEmpty { Text("暂无插件").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30) }
                 ForEach(filtered) { it in
                     Panel(padding: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(it.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
-                                Text("v" + it.version).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textTertiary)
-                                Spacer()
+                        HStack(alignment: .top, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(it.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
+                                    Text("v" + it.version).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textTertiary)
+                                    Spacer()
+                                }
+                                Text(it.id).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary).lineLimit(1)
+                                if !it.desc.isEmpty { Text(it.desc).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2) }
+                                if !it.author.isEmpty { Text("作者：" + it.author).font(.system(size: 11)).foregroundStyle(p.textTertiary) }
+                                if !it.loadError.isEmpty {
+                                    Text("加载失败：" + it.loadError).font(.system(size: 11)).foregroundStyle(.red).lineLimit(2)
+                                }
                             }
-                            Text(it.id).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary).lineLimit(1)
-                            if !it.desc.isEmpty { Text(it.desc).font(.system(size: 12)).foregroundStyle(p.textSecondary).lineLimit(2) }
-                            if !it.author.isEmpty { Text("作者：" + it.author).font(.system(size: 11)).foregroundStyle(p.textTertiary) }
-                            if !it.loadError.isEmpty {
-                                Text("加载失败：" + it.loadError).font(.system(size: 11)).foregroundStyle(.red).lineLimit(2)
-                            }
+                            Spacer(minLength: 4)
+                            Toggle("", isOn: Binding(get: { it.enabled }, set: { v in Task { await toggle(it, v) } }))
+                                .labelsHidden()
                         }
-                    } trailing: {
-                        Toggle("", isOn: Binding(get: { it.enabled }, set: { v in Task { await toggle(it, v) } }))
-                            .labelsHidden()
                     }
                 }
             }
