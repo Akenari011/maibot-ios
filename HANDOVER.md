@@ -192,3 +192,10 @@ MaiBot/
 - custom 模式插件页：拉取 /document HTML 用 WKWebView 渲染。
 - 全量回归截图：13659518439、13663751347（19 tab，无回归）。
 - 测试钩子 TestSupport.effectiveTab 仅用于截图重映射。
+
+## 16. 动画与交互对齐（本会话后段）
+
+- Tab 切换：弹簧 stiffness 420 / damping 36；内容切换 0.26s cubic-bezier(.22,1,.36,1) 淡入淡出（respecting reduce-motion）。
+- 按压反馈：首页宫格、管理菜单行、聊天列表行使用 PressableStyle（0.12s ease-out 缩放/透明度）。
+- 触感：底部 Tab 与搜索按钮加 UIImpactFeedbackGenerator(.soft)。
+- 回归截图：13664108646（19 tab，动画改动无副作用）。
