@@ -214,6 +214,11 @@ final class APIClient {
     func reasoningStages(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/stages")) }
     func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
     func marketplace(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/marketplace"), timeout: 60) }
+    func pluginConfig(botID: String, pluginID: String) async throws -> Any {
+        let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
+        return try await getRaw(proxy(botID, "plugins/config/\(enc)"))
+    }
+
     func togglePlugin(botID: String, pluginID: String) async throws -> Any {
         let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
         let data = try await sendJSON("POST", proxy(botID, "plugins/config/\(enc)/toggle"), nil)

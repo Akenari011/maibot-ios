@@ -38,6 +38,7 @@ struct PluginsView: View {
                 ForEach(filtered) { it in
                     Panel(padding: 14) {
                         HStack(alignment: .top, spacing: 10) {
+                            Button { detail = it } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text(it.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
@@ -51,6 +52,8 @@ struct PluginsView: View {
                                     Text("加载失败：" + it.loadError).font(.system(size: 11)).foregroundStyle(.red).lineLimit(2)
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            }.buttonStyle(.plain)
                             Spacer(minLength: 4)
                             Toggle("", isOn: Binding(get: { it.enabled }, set: { v in Task { await toggle(it, v) } }))
                                 .labelsHidden()
@@ -65,6 +68,7 @@ struct PluginsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .sheet(item: $detail) { d in PluginDetailView(pluginID: d.id, name: d.name) }
     }
 
     private func toggle(_ row: PluginRow, _ value: Bool) async {

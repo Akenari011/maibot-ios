@@ -41,7 +41,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "text.bubble", title: "表达方式", route: .expression),
                 ManagementItem(icon: "character.bubble", title: "黑话", route: .jargon),
                 ManagementItem(icon: "person.crop.circle", title: "人物", route: .person),
-                ManagementItem(icon: "externaldrive", title: "长期记忆", route: .memory),
+                ManagementItem(icon: "externaldrive", title: "知识库", route: .memory),
                 ManagementItem(icon: "point.3.connected.trianglepath.dotted", title: "知识图谱", route: .graph),
             ]),
             ManagementGroup(title: "扩展集成", items: [
