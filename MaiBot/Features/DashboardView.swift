@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State private var news: [NewsResponse.NewsItem] = []
     @State private var error: String?
     @State private var range: Int = 24
+    @State private var quoteIndex = 0
     @State private var statusFlipped = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var onOpenChat: () -> Void = {}
@@ -198,13 +199,16 @@ struct DashboardView: View {
             ("慢慢来，比较快。", "— 麦麦一言"),
             ("把复杂留给我，把简单留给你。", "— 麦麦一言")
         ]
-        let q = quotes[Calendar.current.component(.day, from: Date()) % quotes.count]
+        let idx = (Calendar.current.component(.day, from: Date()) + quoteIndex) % quotes.count
+        let q = quotes[idx]
         return HStack(spacing: 6) {
             Text("『" + q.0 + "』").font(.system(size: 13)).italic().foregroundStyle(p.textSecondary)
             Text(q.1).font(.system(size: 12)).foregroundStyle(p.textTertiary)
             Spacer()
         }
         .padding(.horizontal, 4)
+        .contentShape(.rect)
+        .onTapGesture { withAnimation(.easeOut(duration: Motion.fast)) { quoteIndex += 1 } }
     }
 
     // MARK: storage
