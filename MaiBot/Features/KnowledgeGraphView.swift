@@ -26,6 +26,7 @@ struct KnowledgeGraphView: View {
     @State private var query = ""
     @State private var error: String?
     @State private var loading = true
+    @State private var selectedNode: GraphNodeRow?
 
     private var filteredNodes: [GraphNodeRow] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -54,12 +55,14 @@ struct KnowledgeGraphView: View {
                 if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                 if tab == 0 {
                     ForEach(filteredNodes) { n in
-                        Panel(padding: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(n.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
-                                if !n.detail.isEmpty { Text(n.detail).font(.system(size: 11)).foregroundStyle(p.textSecondary).lineLimit(1) }
+                        Button { selectedNode = n } label: {
+                            Panel(padding: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(n.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
+                                    if !n.detail.isEmpty { Text(n.detail).font(.system(size: 11)).foregroundStyle(p.textSecondary).lineLimit(1) }
+                                }
                             }
-                        }
+                        }.buttonStyle(.plain)
                     }
                 } else {
                     ForEach(filteredEdges) { e in
@@ -78,6 +81,26 @@ struct KnowledgeGraphView: View {
             .padding(16)
         }
         .background(p.bg)
+        .sheet(item: $selectedNode) { n in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(n.name).font(.system(size: 18, weight: .bold)).foregroundStyle(p.text)
+                        if !n.detail.isEmpty { Text(n.detail).font(.system(size: 12)).foregroundStyle(p.textSecondary) }
+                        let related = edges.filter { $0.source == n.name || $0.target == n.name }
+                        Text("相关关系（(related.count)）").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                        ForEach(related) { e in
+                            Panel(padding: 10) {
+                                Text(e.source + " → " + e.target).font(.system(size: 12, weight: .semibold)).foregroundStyle(p.text)
+                                Text(e.label + " · " + String(format: "%.1f", e.weight)).font(.system(size: 10)).foregroundStyle(p.textSecondary)
+                            }
+                        }
+                    }.padding(16)
+                }
+                .background(p.bg)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selectedNode = nil } } }
+            }
+        }
         .navigationTitle("知识图谱")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
