@@ -69,6 +69,7 @@ struct LogsView: View {
     @State private var exportURL: URL?
     @State private var hiddenModules: Set<String> = []
     @State private var confirmClear = false
+    @State private var unseen = 0
     @State private var dateFrom: Date?
     @State private var dateTo: Date?
 
@@ -104,6 +105,9 @@ struct LogsView: View {
             if let url = exportURL { LogsShareSheet(items: [url]) }
         }
         .onAppear { hiddenModules = Set(hiddenRaw.split(separator: ",").map(String.init)) }
+        .onChange(of: logs?.entries.count ?? 0) { _, _ in
+            if !autoFollow { unseen += 1 }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await logs?.connect() } } else { logs?.disconnect() }
         }
@@ -185,8 +189,8 @@ struct LogsView: View {
 
                 Spacer()
 
-                Button { autoFollow.toggle() } label: {
-                    pillLabel(autoFollow ? "暂停跟随" : "跟随最新", icon: autoFollow ? "pause.fill" : "play.fill")
+                Button { autoFollow.toggle(); if autoFollow { unseen = 0 } } label: {
+                    pillLabel(autoFollow ? "暂停跟随" : (unseen > 0 ? "跟随 +(unseen)" : "跟随最新"), icon: autoFollow ? "pause.fill" : "play.fill")
                 }.buttonStyle(.plain)
 
                 iconButton("square.and.arrow.up") { exportURL = makeExportFile() }
