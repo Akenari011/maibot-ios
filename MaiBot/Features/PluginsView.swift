@@ -18,6 +18,7 @@ struct PluginsView: View {
     @State private var items: [PluginRow] = []
     @State private var error: String?
     @State private var search = ""
+    @State private var detail: PluginRow?
 
     private var filtered: [PluginRow] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
