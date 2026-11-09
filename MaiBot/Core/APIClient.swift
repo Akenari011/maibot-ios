@@ -266,6 +266,10 @@ final class APIClient {
     func importTasks(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/import/tasks")) }
     func configModel(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/model")) }
     func helpSessions(botID: String) async throws -> Any { try await getRaw(proxy(botID, "search/help/sessions")) }
+    func activeContext(botID: String, sessionID: String) async throws -> Any {
+        let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? sessionID
+        return try await getRaw(proxy(botID, "reasoning-process/active-context?session_id=\(enc)"))
+    }
     func memoryGraph(botID: String, limit: Int = 500) async throws -> Any {
         try await getRaw(proxy(botID, "memory/graph?limit=\(limit)"), timeout: 60)
     }

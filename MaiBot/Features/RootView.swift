@@ -27,7 +27,7 @@ struct RootView: View {
 
 enum AppTab: Hashable { case home, chat, manage }
 enum HomeRoute: Hashable { case activity, models, settings, logs, files, news, reasoning, gated(String) }
-enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, adapter, reasoning, market, learning, emoji, expression, jargon, person, chatManagement, agent, computer, mcp, graph, dataTransfer, helpHistory, modelPresets, settings, logs, other(String) }
+enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, adapter, reasoning, market, learning, emoji, expression, jargon, person, chatManagement, agent, computer, mcp, graph, dataTransfer, helpHistory, modelPresets, monitor, settings, logs, other(String) }
 
 struct MainShell: View {
     @Environment(\.palette) private var p
@@ -41,11 +41,7 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        // TEMP: capture modelPresets/dataTransfer/helpHistory.
-        let remap: [String: String] = ["home": "modelPresets", "manage": "dataTransfer",
-                                       "chat": "helpHistory"]
-        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
-        switch effectiveTab {
+        switch TestSupport.startTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
@@ -74,6 +70,7 @@ struct MainShell: View {
         case "dataTransfer": start = .manage; mp.append(ManageRoute.dataTransfer)
         case "helpHistory": start = .manage; mp.append(ManageRoute.helpHistory)
         case "modelPresets": start = .manage; mp.append(ManageRoute.modelPresets)
+        case "monitor":  start = .manage; mp.append(ManageRoute.monitor)
         default:         start = .home
         }
         _tab = State(initialValue: start)
@@ -133,6 +130,7 @@ struct MainShell: View {
                                 case .dataTransfer: DataTransferView()
                                 case .helpHistory: HelpHistoryView()
                                 case .modelPresets: ModelPresetsView()
+                                case .monitor:   MonitorView()
                                 case .settings:  SettingsView()
                                 case .logs:      LogsView()
                                 case .other(let title): PlaceholderPage(title: title)

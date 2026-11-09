@@ -62,6 +62,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "doc.text", title: "日志", route: .logs),
                 ManagementItem(icon: "brain", title: "推理过程", route: .reasoning),
                 ManagementItem(icon: "chart.bar", title: "统计", route: .statistics),
+                ManagementItem(icon: "waveform.path.ecg", title: "监控", route: .monitor),
             ]),
             ManagementGroup(title: "系统", items: [
                 ManagementItem(icon: "gearshape", title: "设置", route: .settings),
