@@ -24,7 +24,7 @@ struct NewsListView: View {
                             HStack {
                                 Text(item.source ?? "麦麦官方").font(.system(size: 11)).foregroundStyle(p.textTertiary)
                                 Spacer()
-                                if let t = item.publishedAt { Text(t).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary).lineLimit(1) }
+                                if let t = item.publishedAt { Text(shortDate(t)).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary).lineLimit(1) }
                             }
                         }
                     }
@@ -37,6 +37,13 @@ struct NewsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    private func shortDate(_ s: String) -> String {
+        if let d = ISO8601.date(from: s) {
+            let f = DateFormatter(); f.dateFormat = "MM-dd HH:mm"; return f.string(from: d)
+        }
+        return s
     }
 
     private func load() async {
