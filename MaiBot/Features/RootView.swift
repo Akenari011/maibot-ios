@@ -44,6 +44,7 @@ struct MainShell: View {
         // TEMP: capture plugin declarative page.
         let remap: [String: String] = ["home": "pluginAuto"]
         let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        TestSupport.effectiveTab = effectiveTab
         switch effectiveTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage

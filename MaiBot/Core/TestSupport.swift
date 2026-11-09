@@ -18,6 +18,8 @@ enum TestSupport {
         ProcessInfo.processInfo.environment["GM_TEST_TAB"] ?? "home"
     }
 
+    static var effectiveTab: String = ""
+
     static var forcedTheme: String? {
         let v = ProcessInfo.processInfo.environment["GM_TEST_THEME"] ?? ""
         return v.isEmpty ? nil : v

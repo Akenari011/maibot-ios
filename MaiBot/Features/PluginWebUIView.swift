@@ -17,7 +17,7 @@ struct PluginWebUIView: View {
     }
 
     var body: some View {
-        if TestSupport.startTab == "pluginAuto", let fp = firstPage {
+        if TestSupport.effectiveTab == "pluginAuto", let fp = firstPage {
             PluginPageView(pluginID: fp.0, page: fp.1)
         } else {
         ScrollView {
