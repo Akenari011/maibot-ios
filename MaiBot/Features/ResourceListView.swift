@@ -211,18 +211,16 @@ struct ResourceListView: View {
                 if let e = error { ErrorBanner(message: e) { Task { await load(reset: true) } } }
                 if kind == .emoji {
                     HStack(spacing: 10) {
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Text(uploading ? "上传中…" : "＋ 上传表情").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                            .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                        PhotosPicker(selection: $pickerItem, matching: .images) {
+                            Text(uploading ? "上传中…" : "＋ 上传表情").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                        }
+                        .disabled(uploading)
+                        selectToggle
                     }
-                    .disabled(uploading)
-                    Button(selecting ? "完成" : "选择") {
-                        selecting.toggle(); chosen.removeAll()
-                    }
-                    .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(p.orange.opacity(0.12), in: Capsule())
-                    }
+                }
+                if kind == .expression || kind == .jargon {
+                    HStack { selectToggle }
                 }
                 if selecting {
                     HStack {
@@ -308,6 +306,15 @@ struct ResourceListView: View {
         .sheet(isPresented: $creating) { createSheet }
     }
 
+    private var selectToggle: some View {
+        Button(selecting ? "完成" : "选择") {
+            selecting.toggle(); chosen.removeAll()
+        }
+        .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(p.orange.opacity(0.12), in: Capsule())
+    }
+
     private var createSheet: some View {
         NavigationStack {
             Form {
@@ -332,7 +339,8 @@ struct ResourceListView: View {
             let mode = try await client.hostMode()
             guard let id = mode.selectedBotID else { return }
             let ids = chosen.compactMap { Int($0) }
-            _ = try await client.emojiBatchDelete(botID: id, ids: ids)
+            if kind == .emoji { _ = try await client.emojiBatchDelete(botID: id, ids: ids) }
+            else { _ = try await client.resourceBatchDelete(botID: id, path: kind.path, ids: ids) }
             selecting = false; chosen.removeAll()
             await load(reset: true)
         } catch { self.error = error.localizedDescription }
