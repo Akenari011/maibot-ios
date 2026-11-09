@@ -21,6 +21,29 @@ enum ResourceKind: String, CaseIterable, Identifiable {
     }
 }
 
+struct EmojiThumb: View {
+    @Environment(APIClient.self) private var client
+    let botID: String
+    let emojiID: String
+    var size: CGFloat = 44
+    @State private var image: UIImage?
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.15))
+            }
+        }
+        .frame(width: size, height: size).clipShape(RoundedRectangle(cornerRadius: 8))
+        .task {
+            if image == nil, let d = try? await client.emojiThumbnail(botID: botID, id: emojiID) {
+                image = UIImage(data: d)
+            }
+        }
+    }
+}
+
 struct ResourceItem: Identifiable {
     let id: String
     let title: String
@@ -31,6 +54,7 @@ struct ResourceItem: Identifiable {
 struct ResourceDetailView: View {
     let kind: ResourceKind
     let item: ResourceItem
+    var botID: String = ""
     @Environment(APIClient.self) private var client
     @Environment(AuthStore.self) private var auth
     @Environment(\.palette) private var p
@@ -46,6 +70,9 @@ struct ResourceDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(item.title).font(.system(size: 18, weight: .bold)).foregroundStyle(p.text)
+                    if kind == .emoji {
+                        HStack { Spacer(); EmojiThumb(botID: botID, emojiID: item.id, size: 160); Spacer() }
+                    }
                     if loading { ProgressView().padding(.top, 20) }
                     if let e = error { ErrorBanner(message: e) { Task { await load() } } }
                     if let data { JSONValueView(key: nil, value: data) }
@@ -133,6 +160,7 @@ struct ResourceListView: View {
     @State private var loading = false
     @State private var error: String?
     @State private var selected: ResourceItem?
+    @State private var botID = ""
     @State private var creating = false
     @State private var f1 = ""
     @State private var f2 = ""
@@ -165,6 +193,8 @@ struct ResourceListView: View {
                 ForEach(items) { it in
                     Button { selected = it } label: {
                         Panel(padding: 14) {
+                            HStack(alignment: .top, spacing: 10) {
+                            if kind == .emoji && !botID.isEmpty { EmojiThumb(botID: botID, emojiID: it.id) }
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(it.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
                                 if !it.subtitle.isEmpty {
@@ -173,6 +203,8 @@ struct ResourceListView: View {
                                 if !it.detail.isEmpty {
                                     Text(it.detail).font(.system(size: 11)).foregroundStyle(p.textTertiary).lineLimit(1)
                                 }
+                            }
+                            Spacer(minLength: 0)
                             }
                         }
                     }.buttonStyle(.plain)
@@ -194,7 +226,7 @@ struct ResourceListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
-        .sheet(item: $selected) { it in ResourceDetailView(kind: kind, item: it) }
+        .sheet(item: $selected) { it in ResourceDetailView(kind: kind, item: it, botID: botID) }
         .sheet(isPresented: $creating) { createSheet }
     }
 
@@ -234,6 +266,7 @@ struct ResourceListView: View {
         do {
             let mode = try await client.hostMode()
             guard let id = mode.selectedBotID else { return }
+            botID = id
             let raw = try await client.resourcePage(botID: id, path: kind.path, page: page, search: query)
             let dict = raw as? [String: Any] ?? [:]
             total = (dict["total"] as? Int) ?? Int((dict["total"] as? Double) ?? 0)

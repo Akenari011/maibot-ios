@@ -287,6 +287,18 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func getData(_ path: String) async throws -> Data {
+        let req = try makeRequest(path)
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        if http.statusCode == 401 { throw unauthorizedError(for: req.url?.path ?? "") }
+        guard (200..<300).contains(http.statusCode) else { throw APIError.http(http.statusCode, "") }
+        return data
+    }
+    func emojiThumbnail(botID: String, id: String) async throws -> Data {
+        try await getData(proxy(botID, "emoji/\(id)/thumbnail"))
+    }
+
     func emojiRegister(botID: String, id: String) async throws -> Any {
         let data = try await sendJSON("POST", proxy(botID, "emoji/\(id)/register"), nil)
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
