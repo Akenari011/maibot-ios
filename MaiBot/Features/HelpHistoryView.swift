@@ -13,6 +13,10 @@ struct HelpHistoryView: View {
     @State private var rows: [HelpSessionRow] = []
     @State private var error: String?
     @State private var loading = true
+    @State private var selected: HelpSessionRow?
+    @State private var detail: Any?
+    @State private var detailLoading = false
+    @State private var confirmDelete = false
 
     var body: some View {
         ScrollView {
@@ -24,12 +28,14 @@ struct HelpHistoryView: View {
                     Text("暂无答疑历史").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30)
                 }
                 ForEach(rows) { r in
-                    Panel(padding: 14) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(r.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
-                            if !r.time.isEmpty { Text(r.time).font(.system(size: 11)).foregroundStyle(p.textTertiary) }
+                    Button { Task { await open(r) } } label: {
+                        Panel(padding: 14) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(r.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
+                                if !r.time.isEmpty { Text(r.time).font(.system(size: 11)).foregroundStyle(p.textTertiary) }
+                            }
                         }
-                    }
+                    }.buttonStyle(.plain)
                 }
             }
             .padding(16)
@@ -39,6 +45,45 @@ struct HelpHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .sheet(item: $selected) { r in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(r.title).font(.system(size: 18, weight: .bold)).foregroundStyle(p.text)
+                        if detailLoading { ProgressView() }
+                        if let detail { JSONValueView(key: nil, value: detail) }
+                    }.padding(16)
+                }
+                .background(p.bg)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("关闭") { selected = nil } }
+                    ToolbarItem(placement: .destructiveAction) { Button("删除") { confirmDelete = true } }
+                }
+                .confirmationDialog("删除该答疑会话？", isPresented: $confirmDelete, titleVisibility: .visible) {
+                    Button("删除", role: .destructive) { Task { await remove(r) } }
+                    Button("取消", role: .cancel) {}
+                }
+            }
+        }
+    }
+
+    private func open(_ r: HelpSessionRow) async {
+        selected = r; detail = nil; detailLoading = true; defer { detailLoading = false }
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            detail = try await client.helpSessionDetail(botID: id, id: r.id)
+        } catch { self.error = error.localizedDescription }
+    }
+
+    private func remove(_ r: HelpSessionRow) async {
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.deleteHelpSession(botID: id, id: r.id)
+            selected = nil
+            await load()
+        } catch { self.error = error.localizedDescription }
     }
 
     private func load() async {

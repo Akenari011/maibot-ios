@@ -412,6 +412,16 @@ final class APIClient {
     func memorySources(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/sources")) }
     func importTasks(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/import/tasks")) }
     func configModel(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/model")) }
+    func helpSessionDetail(botID: String, id: String) async throws -> Any {
+        let enc = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return try await getRaw(proxy(botID, "search/help/sessions/\(enc)"))
+    }
+    func deleteHelpSession(botID: String, id: String) async throws -> Any {
+        let enc = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let data = try await sendJSON("DELETE", proxy(botID, "search/help/sessions/\(enc)"), nil)
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func helpSessions(botID: String) async throws -> Any { try await getRaw(proxy(botID, "search/help/sessions")) }
     func activeContext(botID: String, sessionID: String) async throws -> Any {
         let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? sessionID
