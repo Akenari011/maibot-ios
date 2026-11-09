@@ -35,7 +35,7 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "cpu", title: "机器人管理", route: .bots),
             ]),
             ManagementGroup(title: "资源管理", items: [
-                ManagementItem(icon: "book", title: "学习", route: .other("学习")),
+                ManagementItem(icon: "book", title: "学习", route: .learning),
                 ManagementItem(icon: "externaldrive", title: "长期记忆", route: .memory),
             ]),
             ManagementGroup(title: "扩展集成", items: [
