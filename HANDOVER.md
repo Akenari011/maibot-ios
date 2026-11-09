@@ -152,3 +152,12 @@ MaiBot/
   plugins / memory / prompts / files / news / adapter / reasoning / market / learning。
 - 结果：全部渲染成功，无崩溃；资讯/适配器/学习等页在真实接口下正常（适配器当前未设路径、学习空输入时按钮禁用，符合预期）。
 - 结论：菜单内 18 个页面均为真实 SwiftUI 实现（无占位），仅余逐项像素/动画微调。
+
+## 12. 最终逐页截图核验（19 页，真实数据）
+
+- artifact：13652318964（home/manage/chat/room/logs/settings/bots/dark/stats/config/plugins/memory/prompts/files/news/adapter/reasoning/market/learning）。
+- 已验证有真实数据：日志（已连接，200+ 条，ERROR/WARN 着色）、聊天室（真实对话）、统计（图表）、插件（21 项+开关）、文件（12 项）、长期记忆（125 条）、提示词（57 条）、资讯、插件市场（427 条，显示 200）。
+- 适配器：服务端未设置配置文件路径，页面正确显示引导与网页版入口。
+- 学习：表达/黑话抽取页可用（需粘贴文本后点“抽取候选”）。
+- 麦麦设置为只读 JSON 树，默认展开前两层；日志筛选/来源 chip 不再竖排换行。
+- CI 截图步骤 timeout 已由 15 分钟提高到 30 分钟（首次启动约 8.5 分钟，19 页约 16 分钟）。
