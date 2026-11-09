@@ -36,6 +36,10 @@ struct ChatListView: View {
                     }.buttonStyle(PressableStyle())
                 }
 
+                if filtered.isEmpty && !streams.isEmpty && !search.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text("没有匹配的会话").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                        .frame(maxWidth: .infinity).padding(.top, 20)
+                }
                 if !filtered.isEmpty {
                     section("麦麦的聊天流（只读）") {
                         ForEach(filtered) { s in
