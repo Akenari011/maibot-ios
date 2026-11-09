@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 enum ResourceKind: String, CaseIterable, Identifiable {
     case emoji, expression, jargon, person
@@ -188,6 +189,8 @@ struct ResourceListView: View {
     @State private var f2 = ""
     @State private var saving = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var uploading = false
 
     var body: some View {
         ScrollView {
@@ -203,6 +206,13 @@ struct ResourceListView: View {
                 }
                 .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
                 if let e = error { ErrorBanner(message: e) { Task { await load(reset: true) } } }
+                if kind == .emoji {
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Text(uploading ? "上传中…" : "＋ 上传表情").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
+                    }
+                    .disabled(uploading)
+                }
                 if kind == .expression || kind == .jargon {
                     Button { f1 = ""; f2 = ""; creating = true } label: {
                         Text("＋ 新增").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
@@ -253,6 +263,10 @@ struct ResourceListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load(reset: true) }
         .task { await load(reset: true) }
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            Task { await upload(item) }
+        }
         .onChange(of: query) { _, _ in
             searchTask?.cancel()
             searchTask = Task {
@@ -278,6 +292,18 @@ struct ResourceListView: View {
             .navigationTitle("新增" + kind.title)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { creating = false } } }
         }
+    }
+
+    private func upload(_ item: PhotosPickerItem) async {
+        uploading = true; defer { uploading = false }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else { return }
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            _ = try await client.uploadEmoji(botID: id, data: data, filename: "emoji.jpg", mime: "image/jpeg")
+            pickerItem = nil
+            await load(reset: true)
+        } catch { self.error = error.localizedDescription }
     }
 
     private func create() async {

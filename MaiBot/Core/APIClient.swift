@@ -287,6 +287,32 @@ final class APIClient {
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
 
+    func uploadEmoji(botID: String, data: Data, filename: String, mime: String) async throws -> Any {
+        let path = proxy(botID, "emoji/upload")
+        guard let url = URL(string: path, relativeTo: baseURL) else { throw APIError.http(0, "无效地址") }
+        let boundary = "Boundary-" + UUID().uuidString
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mime)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 120
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.setValue("1", forHTTPHeaderField: "X-MaiBot-Host")
+        if let sessionCookie, !sessionCookie.isEmpty { req.setValue(sessionCookie, forHTTPHeaderField: "Cookie") }
+        req.httpBody = body
+        let (respData, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.http(0, "无响应") }
+        if http.statusCode == 401 { throw unauthorizedError(for: req.url?.path ?? "") }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError.http(http.statusCode, String(data: respData, encoding: .utf8) ?? "")
+        }
+        return (try? JSONSerialization.jsonObject(with: respData)) ?? [:]
+    }
+
     func getData(_ path: String) async throws -> Data {
         let req = try makeRequest(path)
         let (data, resp) = try await session.data(for: req)
