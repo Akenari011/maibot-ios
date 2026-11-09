@@ -8,7 +8,18 @@ struct PluginWebUIView: View {
     @State private var error: String?
     @State private var loading = true
 
+    private var firstPage: (String, [String: Any])? {
+        for e in extensions {
+            let pid = (e["plugin_id"] as? String) ?? ""
+            if let pages = e["pages"] as? [[String: Any]], let first = pages.first { return (pid, first) }
+        }
+        return nil
+    }
+
     var body: some View {
+        if TestSupport.startTab == "pluginAuto", let fp = firstPage {
+            PluginPageView(pluginID: fp.0, page: fp.1)
+        } else {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if loading { ProgressView().frame(maxWidth: .infinity).padding(.top, 30) }
@@ -44,6 +55,7 @@ struct PluginWebUIView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        }
     }
 
     private func load() async {

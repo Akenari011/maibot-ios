@@ -41,7 +41,10 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        switch TestSupport.startTab {
+        // TEMP: capture plugin declarative page.
+        let remap: [String: String] = ["home": "pluginAuto"]
+        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        switch effectiveTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
@@ -74,6 +77,7 @@ struct MainShell: View {
         case "components": start = .manage; mp.append(ManageRoute.components)
         case "observation": start = .manage; mp.append(ManageRoute.observation)
         case "pluginWebUI": start = .manage; mp.append(ManageRoute.pluginWebUI)
+        case "pluginAuto": start = .manage; mp.append(ManageRoute.pluginWebUI)
         default:         start = .home
         }
         _tab = State(initialValue: start)
