@@ -295,6 +295,12 @@ final class APIClient {
         guard (200..<300).contains(http.statusCode) else { throw APIError.http(http.statusCode, "") }
         return data
     }
+    func personAvatar(botID: String, platform: String, userID: String) async throws -> Data {
+        let p = platform.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? platform
+        let u = userID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? userID
+        return try await getData(proxy(botID, "avatar?platform=\(p)&user_id=\(u)"))
+    }
+
     func emojiThumbnail(botID: String, id: String) async throws -> Data {
         for _ in 0..<8 {
             let d = try await getData(proxy(botID, "emoji/\(id)/thumbnail"))

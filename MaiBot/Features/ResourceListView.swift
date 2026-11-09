@@ -49,6 +49,28 @@ struct ResourceItem: Identifiable {
     let title: String
     let subtitle: String
     let detail: String
+    var avatar: String? = nil
+}
+
+struct PersonThumb: View {
+    @Environment(APIClient.self) private var client
+    let botID: String
+    let platform: String
+    let userID: String
+    var size: CGFloat = 44
+    @State private var image: UIImage?
+    var body: some View {
+        Group {
+            if let image { Image(uiImage: image).resizable().scaledToFill() }
+            else { Circle().fill(Color.secondary.opacity(0.15)) }
+        }
+        .frame(width: size, height: size).clipShape(Circle())
+        .task {
+            if image == nil, let d = try? await client.personAvatar(botID: botID, platform: platform, userID: userID) {
+                image = UIImage(data: d)
+            }
+        }
+    }
 }
 
 struct ResourceDetailView: View {
@@ -195,6 +217,10 @@ struct ResourceListView: View {
                         Panel(padding: 14) {
                             HStack(alignment: .top, spacing: 10) {
                             if kind == .emoji && !botID.isEmpty { EmojiThumb(botID: botID, emojiID: it.id) }
+                            if kind == .person, let av = it.avatar, !botID.isEmpty {
+                                let parts = av.split(separator: "|", maxSplits: 1).map(String.init)
+                                if parts.count == 2 { PersonThumb(botID: botID, platform: parts[0], userID: parts[1]) }
+                            }
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(it.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(2)
                                 if !it.subtitle.isEmpty {
@@ -305,7 +331,8 @@ struct ResourceListView: View {
             return ResourceItem(id: String(num("id")),
                                 title: name.isEmpty ? "未命名" : name,
                                 subtitle: str("platform") + " · " + str("user_id"),
-                                detail: "认识 \(num("know_times")) 次")
+                                detail: "认识 \(num("know_times")) 次",
+                                avatar: str("platform") + "|" + str("user_id"))
         }
     }
 }
