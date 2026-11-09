@@ -43,6 +43,9 @@ struct ManagementIndexView: View {
                 ManagementItem(icon: "externaldrive", title: "长期记忆", route: .memory),
             ]),
             ManagementGroup(title: "扩展集成", items: [
+                ManagementItem(icon: "cpu", title: "Agent 设置", route: .agent),
+                ManagementItem(icon: "desktopcomputer", title: "电脑使用", route: .computer),
+                ManagementItem(icon: "server.rack", title: "MCP 设置", route: .mcp),
                 ManagementItem(icon: "puzzlepiece.extension", title: "插件配置", route: .plugins),
                 ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .market),
             ]),
