@@ -237,6 +237,7 @@ struct NewsResponse: Codable {
         let id: String
         let title: String
         let summary: String?
+        let content: String?
         let source: String?
         let publishedAt: String?
 
