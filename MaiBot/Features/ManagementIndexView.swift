@@ -79,6 +79,11 @@ struct ManagementIndexView: View {
                 .padding(.horizontal, 14).frame(height: 40)
                 .background(p.iconCircle, in: RoundedRectangle(cornerRadius: 12))
 
+                if filteredGroups.isEmpty {
+                    Text("没有匹配的页面").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                        .frame(maxWidth: .infinity).padding(.top, 40)
+                }
+
                 ForEach(filteredGroups) { g in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(g.title).font(.system(size: 13)).foregroundStyle(p.textSecondary).padding(.leading, 4)
