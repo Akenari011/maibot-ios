@@ -40,7 +40,7 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "扩展集成", items: [
                 ManagementItem(icon: "puzzlepiece.extension", title: "插件配置", route: .plugins),
-                ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .other("插件市场")),
+                ManagementItem(icon: "square.grid.2x2", title: "插件市场", route: .market),
             ]),
             ManagementGroup(title: "高级工具", items: [
                 ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
