@@ -231,6 +231,15 @@ final class APIClient {
         return obj["result"] ?? obj
     }
 
+    func pluginRaw(botID: String, pluginID: String) async throws -> Any {
+        let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
+        return try await getRaw(proxy(botID, "plugins/config/\(enc)/raw"))
+    }
+    func pluginSchema(botID: String, pluginID: String) async throws -> Any {
+        let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
+        return try await getRaw(proxy(botID, "plugins/config/\(enc)/schema"))
+    }
+
     func pluginConfig(botID: String, pluginID: String) async throws -> Any {
         let enc = pluginID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? pluginID
         return try await getRaw(proxy(botID, "plugins/config/\(enc)"))
