@@ -67,6 +67,10 @@ struct MainShell: View {
         case "jargon":   start = .manage; mp.append(ManageRoute.jargon)
         case "person":   start = .manage; mp.append(ManageRoute.person)
         case "chatManagement": start = .manage; mp.append(ManageRoute.chatManagement)
+        case "agent":    start = .manage; mp.append(ManageRoute.agent)
+        case "computer": start = .manage; mp.append(ManageRoute.computer)
+        case "mcp":      start = .manage; mp.append(ManageRoute.mcp)
+        case "graph":    start = .manage; mp.append(ManageRoute.graph)
         default:         start = .home
         }
         _tab = State(initialValue: start)
