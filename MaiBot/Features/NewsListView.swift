@@ -6,6 +6,7 @@ struct NewsListView: View {
     @Environment(\.palette) private var p
     @State private var items: [NewsResponse.NewsItem] = []
     @State private var error: String?
+    @State private var selected: NewsResponse.NewsItem?
 
     var body: some View {
         ScrollView {
@@ -15,6 +16,7 @@ struct NewsListView: View {
                     Text("暂无资讯").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 40)
                 }
                 ForEach(items) { item in
+                    Button { selected = item } label: {
                     Panel(padding: 14) {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(item.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(p.text)
@@ -28,6 +30,7 @@ struct NewsListView: View {
                             }
                         }
                     }
+                    }.buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
@@ -37,6 +40,23 @@ struct NewsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .sheet(item: $selected) { item in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(item.title).font(.system(size: 20, weight: .bold)).foregroundStyle(p.text)
+                        HStack {
+                            Text(item.source ?? "麦麦官方").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                            Spacer()
+                            if let t = item.publishedAt { Text(shortDate(t)).font(.system(size: 10, design: .monospaced)).foregroundStyle(p.textTertiary) }
+                        }
+                        Text(item.content ?? item.summary ?? "").font(.system(size: 14)).foregroundStyle(p.textSecondary).fixedSize(horizontal: false, vertical: true)
+                    }.padding(16)
+                }
+                .background(p.bg)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { selected = nil } } }
+            }
+        }
     }
 
     private func shortDate(_ s: String) -> String {
