@@ -31,6 +31,10 @@ struct AdapterConfigView: View {
                     Text("尚未设置适配器配置文件路径").font(.system(size: 13)).foregroundStyle(p.textSecondary)
                     Text("请先在网页版「适配器设置」中选择配置文件，然后回到此页刷新。")
                         .font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                    if let u = URL(string: "/adapter-management", relativeTo: client.baseURL) {
+                        Link("在网页版打开", destination: u).font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+                            .padding(.top, 4)
+                    }
                 }
             }
             .padding(16)
