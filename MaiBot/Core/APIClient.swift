@@ -347,6 +347,11 @@ final class APIClient {
         let data = try await sendJSON("POST", proxy(botID, "emoji/\(id)/ban"), nil)
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
+    func emojiBatchDelete(botID: String, ids: [Int]) async throws -> Any {
+        let data = try await sendJSON("POST", proxy(botID, "emoji/batch/delete"), ["emoji_ids": ids])
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func emojiDelete(botID: String, id: String) async throws -> Any {
         let data = try await sendJSON("DELETE", proxy(botID, "emoji/\(id)"), nil)
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]

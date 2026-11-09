@@ -191,6 +191,9 @@ struct ResourceListView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var pickerItem: PhotosPickerItem?
     @State private var uploading = false
+    @State private var selecting = false
+    @State private var chosen: Set<String> = []
+    @State private var confirmBatch = false
 
     var body: some View {
         ScrollView {
@@ -207,11 +210,33 @@ struct ResourceListView: View {
                 .padding(.horizontal, 12).frame(height: 38).background(p.iconCircle, in: RoundedRectangle(cornerRadius: 10))
                 if let e = error { ErrorBanner(message: e) { Task { await load(reset: true) } } }
                 if kind == .emoji {
+                    HStack(spacing: 10) {
                     PhotosPicker(selection: $pickerItem, matching: .images) {
                         Text(uploading ? "上传中…" : "＋ 上传表情").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
                             .padding(.horizontal, 14).padding(.vertical, 8).background(p.orange, in: Capsule())
                     }
                     .disabled(uploading)
+                    Button(selecting ? "完成" : "选择") {
+                        selecting.toggle(); chosen.removeAll()
+                    }
+                    .font(.system(size: 13, weight: .medium)).foregroundStyle(p.orange)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(p.orange.opacity(0.12), in: Capsule())
+                    }
+                }
+                if selecting {
+                    HStack {
+                        Text("已选 \(chosen.count) 项").font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                        Spacer()
+                        Button("删除所选") { confirmBatch = true }
+                            .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            .padding(.horizontal, 14).padding(.vertical, 8).background(.red, in: Capsule())
+                            .disabled(chosen.isEmpty)
+                    }
+                    .confirmationDialog("删除所选 \(chosen.count) 个表情？", isPresented: $confirmBatch, titleVisibility: .visible) {
+                        Button("删除", role: .destructive) { Task { await batchDelete() } }
+                        Button("取消", role: .cancel) {}
+                    }
                 }
                 if kind == .expression || kind == .jargon {
                     Button { f1 = ""; f2 = ""; creating = true } label: {
@@ -224,10 +249,14 @@ struct ResourceListView: View {
                     Text("暂无数据").font(.system(size: 13)).foregroundStyle(p.textSecondary).frame(maxWidth: .infinity).padding(.top, 30)
                 }
                 ForEach(items) { it in
-                    Button { selected = it } label: {
+                    Button { if selecting { toggle(it.id) } else { selected = it } } label: {
                         Panel(padding: 14) {
                             HStack(alignment: .top, spacing: 10) {
                             if kind == .emoji && !botID.isEmpty { EmojiThumb(botID: botID, emojiID: it.id) }
+                            if selecting {
+                                Image(systemName: chosen.contains(it.id) ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 18)).foregroundStyle(chosen.contains(it.id) ? p.orange : p.textTertiary)
+                            }
                             if kind == .person, let av = it.avatar, !botID.isEmpty {
                                 let parts = av.split(separator: "|", maxSplits: 1).map(String.init)
                                 if parts.count == 2 { PersonThumb(botID: botID, platform: parts[0], userID: parts[1]) }
@@ -292,6 +321,21 @@ struct ResourceListView: View {
             .navigationTitle("新增" + kind.title)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { creating = false } } }
         }
+    }
+
+    private func toggle(_ id: String) {
+        if chosen.contains(id) { chosen.remove(id) } else { chosen.insert(id) }
+    }
+
+    private func batchDelete() async {
+        do {
+            let mode = try await client.hostMode()
+            guard let id = mode.selectedBotID else { return }
+            let ids = chosen.compactMap { Int($0) }
+            _ = try await client.emojiBatchDelete(botID: id, ids: ids)
+            selecting = false; chosen.removeAll()
+            await load(reset: true)
+        } catch { self.error = error.localizedDescription }
     }
 
     private func upload(_ item: PhotosPickerItem) async {
