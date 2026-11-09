@@ -210,6 +210,8 @@ final class APIClient {
     func pluginsInstalled(botID: String) async throws -> Any { try await getRaw(proxy(botID, "plugins/installed")) }
     func configPrompts(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/prompts")) }
     func adapterConfigPath(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/adapter-config/path")) }
+    func reasoningStages(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/stages")) }
+    func reasoningFiles(botID: String) async throws -> Any { try await getRaw(proxy(botID, "reasoning-process/files")) }
     func adapterConfig(botID: String, path: String) async throws -> Any {
         let enc = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
         return try await getRaw(proxy(botID, "config/adapter-config?path=\(enc)"))

@@ -48,7 +48,7 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "运行日志", items: [
                 ManagementItem(icon: "doc.text", title: "日志", route: .logs),
-                ManagementItem(icon: "brain", title: "推理过程", route: .other("推理过程")),
+                ManagementItem(icon: "brain", title: "推理过程", route: .reasoning),
                 ManagementItem(icon: "chart.bar", title: "统计", route: .statistics),
             ]),
             ManagementGroup(title: "系统", items: [
