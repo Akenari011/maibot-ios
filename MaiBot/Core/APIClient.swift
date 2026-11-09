@@ -232,6 +232,17 @@ final class APIClient {
         }
         return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
     }
+    func chatSessionDetail(botID: String, sessionID: String) async throws -> Any {
+        let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? sessionID
+        return try await getRaw(proxy(botID, "chat/sessions/\(enc)"))
+    }
+
+    func setPrivateReplyPause(botID: String, sessionID: String, paused: Bool) async throws -> Any {
+        let enc = sessionID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? sessionID
+        let data = try await sendJSON("PUT", proxy(botID, "chat/sessions/\(enc)/private-reply-pause"), ["paused": paused])
+        return (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+    }
+
     func resourcePage(botID: String, path: String, page: Int, search: String) async throws -> Any {
         var q = "\(path)?page=\(page)&page_size=20"
         let s = search.trimmingCharacters(in: .whitespaces)

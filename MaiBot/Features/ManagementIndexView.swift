@@ -48,6 +48,7 @@ struct ManagementIndexView: View {
             ]),
             ManagementGroup(title: "高级工具", items: [
                 ManagementItem(icon: "text.alignleft", title: "提示词管理", route: .prompts),
+                ManagementItem(icon: "bubble.left.and.text.bubble.right", title: "聊天管理", route: .chatManagement),
                 ManagementItem(icon: "arrow.left.arrow.right", title: "数据传输", route: .files),
             ]),
             ManagementGroup(title: "运行日志", items: [
