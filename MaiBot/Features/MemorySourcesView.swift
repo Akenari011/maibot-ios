@@ -24,7 +24,7 @@ struct MemorySourcesView: View {
                     Panel(padding: 14) {
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(it.name.isEmpty ? it.id : it.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
+                                Text(displayName(it)).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.text).lineLimit(1)
                                 Text(it.kind).font(.system(size: 11, design: .monospaced)).foregroundStyle(p.textTertiary)
                             }
                             Spacer()
@@ -40,6 +40,15 @@ struct MemorySourcesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    private func displayName(_ it: MemorySourceRow) -> String {
+        if !it.name.isEmpty { return it.name }
+        let labels = ["person_fact": "人物事实", "chat_summary": "聊天摘要",
+                      "knowledge": "知识", "paragraph": "段落"]
+        let label = labels[it.kind] ?? (it.kind.isEmpty ? "记忆" : it.kind)
+        let raw = it.id.contains(":") ? String(it.id.split(separator: ":").last ?? "") : it.id
+        return label + " · " + String(raw.prefix(8))
     }
 
     private func load() async {
