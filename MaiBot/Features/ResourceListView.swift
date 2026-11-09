@@ -67,8 +67,20 @@ struct ResourceDetailView: View {
                             Button("取消", role: .cancel) {}
                         }
                     }
-                    if kind != .emoji {
-                        Text("只读：编辑请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
+                    if kind == .expression || kind == .jargon {
+                        HStack {
+                            Button("删除") { confirmDelete = true }
+                                .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 8).background(.red, in: Capsule())
+                                .disabled(busy)
+                        }
+                        .confirmationDialog("删除该条目？", isPresented: $confirmDelete, titleVisibility: .visible) {
+                            Button("删除", role: .destructive) { Task { await act("delete") } }
+                            Button("取消", role: .cancel) {}
+                        }
+                    }
+                    if kind == .person {
+                        Text("只读：人物资料编辑请在网页版操作。").font(.system(size: 11)).foregroundStyle(p.textTertiary)
                     }
                 }
                 .padding(16)
@@ -87,7 +99,9 @@ struct ResourceDetailView: View {
             switch action {
             case "register": _ = try await client.emojiRegister(botID: id, id: item.id)
             case "ban": _ = try await client.emojiBan(botID: id, id: item.id)
-            case "delete": _ = try await client.emojiDelete(botID: id, id: item.id)
+            case "delete":
+                if kind == .emoji { _ = try await client.emojiDelete(botID: id, id: item.id) }
+                else { _ = try await client.resourceDelete(botID: id, path: kind.path, id: item.id) }
             default: break
             }
             await load()
