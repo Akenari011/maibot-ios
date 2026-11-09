@@ -70,7 +70,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             build 2>&1 | tail -5
       - name: Boot, install, screenshot
-        timeout-minutes: 15
+        timeout-minutes: 30
         env:
           GM_COOKIE: ${{ secrets.GM_TEST_COOKIE }}
         run: |
