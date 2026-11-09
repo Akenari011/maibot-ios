@@ -144,3 +144,11 @@ MaiBot/
 - **聊天**：对端名称（session_info）、自己消息 sender/time、回车发送、未连接/空输入禁用发送、后台断开 WS、自动滚底尊重 reduce-motion。
 - **健壮性**：机器人代理 401 不再触发登出（提示“机器人会话未就绪”）；连接 12s 看门狗；子页错误统一可重试。
 - **CI**：普通 push 只编译（约 3 分钟）；手动触发或 commit 含 [shot] 才截图（15 个 tab）。
+
+## 11. 核验记录（最近一次全量截图）
+
+- 触发：手动 workflow_dispatch；产物 artifact id 13642501070（app-screenshots）。
+- 覆盖 19 个 tab：home / manage / chat / room / logs / settings / bots / dark / stats / config /
+  plugins / memory / prompts / files / news / adapter / reasoning / market / learning。
+- 结果：全部渲染成功，无崩溃；资讯/适配器/学习等页在真实接口下正常（适配器当前未设路径、学习空输入时按钮禁用，符合预期）。
+- 结论：菜单内 18 个页面均为真实 SwiftUI 实现（无占位），仅余逐项像素/动画微调。
