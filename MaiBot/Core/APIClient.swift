@@ -432,6 +432,11 @@ final class APIClient {
         return try await getRaw(proxy(botID, "config/adapter-config?path=\(enc)"))
     }
     func files(botID: String) async throws -> Any { try await getRaw(proxy(botID, "files")) }
+    func memorySearch(botID: String, query: String, limit: Int = 20) async throws -> Any {
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        return try await getRaw(proxy(botID, "memory/records/search?query=\(q)&limit=\(limit)"))
+    }
+
     func memorySources(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/sources")) }
     func importTasks(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/import/tasks")) }
     func configModel(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/model")) }
