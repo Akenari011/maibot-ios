@@ -41,7 +41,11 @@ struct MainShell: View {
         var hp = NavigationPath()
         var mp = NavigationPath()
         let start: AppTab
-        switch TestSupport.startTab {
+        // TEMP: capture modelPresets/dataTransfer/helpHistory.
+        let remap: [String: String] = ["home": "modelPresets", "manage": "dataTransfer",
+                                       "chat": "helpHistory"]
+        let effectiveTab = remap[TestSupport.startTab] ?? TestSupport.startTab
+        switch effectiveTab {
         case "chat", "room": start = .chat
         case "manage":   start = .manage
         case "logs":     start = .home; hp.append(HomeRoute.logs)
