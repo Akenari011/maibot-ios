@@ -26,7 +26,7 @@ struct RootView: View {
 }
 
 enum AppTab: Hashable { case home, chat, manage }
-enum HomeRoute: Hashable { case activity, models, settings, logs, files, news, gated(String) }
+enum HomeRoute: Hashable { case activity, models, settings, logs, files, news, reasoning, gated(String) }
 enum ManageRoute: Hashable { case bots, models, statistics, config, plugins, memory, prompts, files, adapter, reasoning, settings, logs, other(String) }
 
 struct MainShell: View {
@@ -76,6 +76,7 @@ struct MainShell: View {
                                 case .logs:     LogsView()
                                 case .files:    FilesView()
                                 case .news:     NewsListView()
+                                case .reasoning: ReasoningView()
                                 case .gated(let t): PlaceholderPage(title: t)
                                 }
                             }

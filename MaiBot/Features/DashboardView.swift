@@ -185,7 +185,7 @@ struct DashboardView: View {
                     .buttonStyle(.plain)
                 NavigationLink(value: HomeRoute.activity) { GridTile(icon: "doc.on.doc", label: "回复日志") }
                     .buttonStyle(.plain)
-                NavigationLink(value: HomeRoute.gated("推理过程")) { GridTile(icon: "doc.text.magnifyingglass", label: "推理日志") }
+                NavigationLink(value: HomeRoute.reasoning) { GridTile(icon: "doc.text.magnifyingglass", label: "推理日志") }
                     .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
