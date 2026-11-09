@@ -263,6 +263,9 @@ final class APIClient {
     }
     func files(botID: String) async throws -> Any { try await getRaw(proxy(botID, "files")) }
     func memorySources(botID: String) async throws -> Any { try await getRaw(proxy(botID, "memory/sources")) }
+    func memoryGraph(botID: String, limit: Int = 500) async throws -> Any {
+        try await getRaw(proxy(botID, "memory/graph?limit=\(limit)"), timeout: 60)
+    }
 
     func configBot(botID: String) async throws -> Any { try await getRaw(proxy(botID, "config/bot")) }
 
