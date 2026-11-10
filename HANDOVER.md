@@ -4,7 +4,7 @@
 
 ## 1. 这是什么
 
-MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Lbcheng1145/maibot-ios**（public，MIT）。
+MaiBot 面板的原生 iOS 客户端。仓库 **https://github.com/Akenari011/maibot-ios**（public，MIT）。
 
 目标形态：**除登录外全原生**。登录走 WKWebView（SSO + Turnstile 必须），其余全部 SwiftUI 原生视图，不加载网页。
 
@@ -131,7 +131,7 @@ MaiBot/
 
 ## 9. 给新会话的第一句话（直接粘贴）
 
-> 接手 MaiBot iOS（https://github.com/Lbcheng1145/maibot-ios），先读仓库根目录 HANDOVER.md。
+> 接手 MaiBot iOS（https://github.com/Akenari011/maibot-ios），先读仓库根目录 HANDOVER.md。
 > 当前进度：首页/聊天(列表+对话)/管理/设置(6Tab·浅深主题·强调色)/机器人/日志(棕终端·来源多选·日期筛选)/
 > 模型/统计/麦麦设置(只读)/插件/长期记忆/提示词/文件/资讯 共 18 个真实页面已完成；受限 3 页(插件市场/推理过程/
 > 适配器/学习)保留占位并提供"在网页版打开"深链。机器人代理 401 不再触发登出；WS 后台自动断开。

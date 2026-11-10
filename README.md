@@ -1,6 +1,6 @@
 # MaiBot iOS
 
-[![Build](https://github.com/Lbcheng1145/maibot-ios/actions/workflows/build.yml/badge.svg)](https://github.com/Lbcheng1145/maibot-ios/actions/workflows/build.yml)
+[![Build](https://github.com/Akenari011/maibot-ios/actions/workflows/build.yml/badge.svg)](https://github.com/Akenari011/maibot-ios/actions/workflows/build.yml)
 
 一个 MaiBot 面板的原生 iOS 客户端，SwiftUI + Liquid Glass，直接对接现有 host API。
 
